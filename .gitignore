@@ -72,3 +72,7 @@ ComputeShader/Plugins/*/Intermediate/*
 
 # Cache files for the editor to use
 ComputeShader/DerivedDataCache/*
+
+ComputeShader/Config
+ComputeShader/Binaries
+ComputeShader/Intermediate
