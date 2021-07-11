@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "EditorCustomShaderNode",
+	"Description": "Adds a node to the shader editor that allows you to drag shader files into it. Making it so you do not need to write in the custom node.",
+	"Category": "Other",
+	"CreatedBy": "Sebastien Vermeulen",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": true,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "EditorCustomShaderNode",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}

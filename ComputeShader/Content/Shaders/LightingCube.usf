@@ -1,0 +1,129 @@
+const int MAX_STEPS = 500;
+const float MIN_DIST = 0.01;
+const float MAX_DIST = 10000.0;
+
+const float3 gDefaultCol = float3(0.0,0.0,0.0);
+const float gShadowSoftness = 15.0;
+
+struct Object
+{
+    float GetDist(const in float3 newPos, const in float cubeRad)
+    {
+        return length(max(abs(newPos) - cubeRad, 0.0));
+    } 
+    float3 GetNormal(const in float3 newPos, const in float3 cubeOrig, const in float cubeRad)
+    {
+        float3 pos = newPos;// - cubeOrig;
+
+        float dist = GetDist(pos, cubeRad);
+        float2 add = float2(0.01,0.0);
+        
+        float3 normal = 
+            float3(
+            GetDist(pos+add.xyy, cubeRad),
+            GetDist(pos+add.yxy, cubeRad),
+            GetDist(pos+add.yyx, cubeRad))
+                -
+            float3(
+            GetDist(pos-add.xyy, cubeRad),
+            GetDist(pos-add.yxy, cubeRad),
+            GetDist(pos-add.yyx, cubeRad));
+        return normalize(normal);
+    }
+};
+
+struct MarchInfo
+{
+    float3 lastPos;
+    float dist;
+    float lastDist;
+    int steps;
+};
+
+struct Marcher
+{
+    float CalcSoftShadow(const in float3 rayOrigin, const in float3 rayDirection, const in float3 cubeOrig, const in float cubeRad)
+    {
+        float rayLength = 0.0;
+        const float maxShadowRenderDist = 20.0;
+
+        Object obj;
+
+        float shadow = 1.0;
+        for(int steps = 0; steps < MAX_STEPS; steps++)
+        {
+            if(rayLength > maxShadowRenderDist)
+            {
+                break;
+            }
+
+            float newDist = obj.GetDist(rayOrigin + rayLength * rayDirection - cubeOrig, cubeRad);
+            if(newDist <= MIN_DIST)
+            {
+                return 0.0;
+            }
+
+            rayLength += newDist;
+            shadow = min(shadow, gShadowSoftness * newDist / rayLength);
+        }
+
+        return clamp(shadow,0.0,1.0);
+    }
+    float Diffuse(const in float3 normal, const in float3 light)
+    {
+        return dot(normal, light);
+    }
+    float Specular(const in float3 viewDir, const in float3 normal, float3 light, const in float shinyness)
+    {
+    	float3 halfVec = dot(normal, normalize(light + viewDir));
+        return pow(saturate(halfVec), shinyness);
+    }
+    float4 GetLighting(const in float3 viewPos, const in float3 viewDir, const in MarchInfo march, 
+        const in float3 lightOrigin, out float3 lightDir, const in float3 cubeOrig, const in float3  diffuseColor, const in float3 specularColor, 
+        const in float3 lightColor, const in float3 ambientColor, out float3 normal, const in float cubeRad, const in float shinyness, const in float fogMultiplier)
+    {   
+        Object obj;
+        normal = obj.GetNormal(march.lastPos, cubeOrig, cubeRad);
+
+        //Lighting
+        lightDir = lightOrigin - march.lastPos;
+        float lightLength = length(lightDir);
+        lightDir = lightDir / lightLength;
+        lightLength = lightLength / 100;
+
+        const float3 spec = Specular(viewDir, normal, lightDir, shinyness) * specularColor * lightColor / lightLength;
+        const float3 diff = Diffuse(normal, lightDir) * diffuseColor * lightColor / lightLength;
+        float3 col = spec + diff + ambientColor;
+
+        //Check dist  
+        if(MIN_DIST >= march.lastDist)
+        {
+            //Cast shadows
+            //Offset with the normal to prevent stuff overlapping with the object it hit
+            //col *= CalcSoftShadow(march.lastPos + normal * MIN_DIST * 25., lightDir, cubeOrig, cubeRad);
+
+            //Apply fog
+            //const float fogAmount = march.dist / MAX_DIST;
+            //col *= lerp(col, saturate(gDefaultCol + (float3)0.001), fogMultiplier * march.dist);
+
+            return float4(saturate(col), 1.0);
+        }
+        //else
+        //{
+        //    //Return default background coll, with added glow
+        //	col =  lerp(gDefaultCol, float3(float(march.steps) / 5.0, 0.0, 0.0), 0.1);
+    	//    return float4(clamp(col, 0.0, 1.0), lerp(0.0, 0.5, 0.1));
+        //}
+        return (float4)0.0;
+    }
+};
+
+//Lighting
+Marcher marcher;
+MarchInfo march;
+march.lastPos = lastPos;
+march.dist = distance;
+march.lastDist = lastDist;
+march.steps = steps;
+
+return marcher.GetLighting(rayPos, -rayDirection, march, lightOrigin, lightDir, cubeOrig, diffuseColor, specularColor, lightColor, ambientColor, normal, cubeRad, shinyness, fogMultiplier);

@@ -1,0 +1,9 @@
+{
+	"SourceFiles": [
+		"C:\\Users\\Vermeulen\\Documents\\Unreal_Projects\\UE5_ComputeShader\\ComputeShader\\Source\\ComputeShader\\ComputeShader.Build.cs",
+		"C:\\Users\\Vermeulen\\Documents\\Unreal_Projects\\UE5_ComputeShader\\ComputeShader\\Plugins\\EditorCustomShaderNode\\Source\\EditorCustomShaderNode\\EditorCustomShaderNode.Build.cs",
+		"C:\\Users\\Vermeulen\\Documents\\Unreal_Projects\\UE5_ComputeShader\\ComputeShader\\Source\\ComputeShader.Target.cs",
+		"C:\\Users\\Vermeulen\\Documents\\Unreal_Projects\\UE5_ComputeShader\\ComputeShader\\Source\\ComputeShaderEditor.Target.cs"
+	],
+	"EngineVersion": "5.0.0"
+}

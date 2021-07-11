@@ -1,0 +1,127 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <None Include="..\..\ComputeShader.uproject" />
+    <Filter Include="Source">
+      <UniqueIdentifier>{404906E9-EE2E-4828-9A00-F8ED7733C48A}</UniqueIdentifier>
+    </Filter>
+    <None Include="..\..\Source\ComputeShader.Target.cs">
+      <Filter>Source</Filter>
+    </None>
+    <None Include="..\..\Source\ComputeShaderEditor.Target.cs">
+      <Filter>Source</Filter>
+    </None>
+    <None Include="..\..\build.bat" />
+    <Filter Include="Config">
+      <UniqueIdentifier>{E66EA2A1-A71B-426D-AE9C-416065382716}</UniqueIdentifier>
+    </Filter>
+    <None Include="..\..\Config\DefaultEditor.ini">
+      <Filter>Config</Filter>
+    </None>
+    <None Include="..\..\Config\DefaultEngine.ini">
+      <Filter>Config</Filter>
+    </None>
+    <None Include="..\..\Config\DefaultGame.ini">
+      <Filter>Config</Filter>
+    </None>
+    <Filter Include="Plugins">
+      <UniqueIdentifier>{078AA9F0-C9ED-4A0B-8040-6E40D7785DC4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Plugins\EditorCustomShaderNode">
+      <UniqueIdentifier>{8A0F9D1C-FAD9-4C94-BCD3-F42896BF47A1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Plugins\EditorCustomShaderNode\Source">
+      <UniqueIdentifier>{C8EACEB3-E834-400A-B3AA-CFEB60701F73}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode">
+      <UniqueIdentifier>{8CA83EAE-C26E-4726-99FB-8EFFC868B68C}</UniqueIdentifier>
+    </Filter>
+    <None Include="..\..\Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\EditorCustomShaderNode.Build.cs">
+      <Filter>Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode</Filter>
+    </None>
+    <ClCompile Include="..\..\Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\EditorCustomShaderNode.cpp">
+      <Filter>Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\EditorCustomShaderNode.h">
+      <Filter>Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode</Filter>
+    </ClInclude>
+    <Filter Include="Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\CustomExpression">
+      <UniqueIdentifier>{C8FCC3DD-FFAB-4561-A2D0-B0F53ED6B745}</UniqueIdentifier>
+    </Filter>
+    <ClCompile Include="..\..\Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\CustomExpression\CustomFileMaterialExpression.cpp">
+      <Filter>Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\CustomExpression</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\CustomExpression\CustomFileMaterialExpression.h">
+      <Filter>Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\CustomExpression</Filter>
+    </ClInclude>
+    <Filter Include="Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Editor">
+      <UniqueIdentifier>{25902232-EA79-4F92-ABAB-FA06BD60B7EC}</UniqueIdentifier>
+    </Filter>
+    <ClCompile Include="..\..\Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Editor\CustomFileMatExprCustomization.cpp">
+      <Filter>Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Editor</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Editor\CustomFileMatExprCustomization.h">
+      <Filter>Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Editor</Filter>
+    </ClInclude>
+    <Filter Include="Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Shader">
+      <UniqueIdentifier>{00805400-9F56-40D7-AA17-96F28D32DA90}</UniqueIdentifier>
+    </Filter>
+    <ClCompile Include="..\..\Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Shader\ReimportShaderFileFactory.cpp">
+      <Filter>Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Shader</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Shader\ReimportShaderFileFactory.h">
+      <Filter>Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Shader</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Shader\ShaderFileData.cpp">
+      <Filter>Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Shader</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Shader\ShaderFileData.h">
+      <Filter>Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Shader</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Shader\ShaderFileFactory.cpp">
+      <Filter>Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Shader</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Shader\ShaderFileFactory.h">
+      <Filter>Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Shader</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Shader\ShaderFileTypeActions.cpp">
+      <Filter>Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Shader</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Shader\ShaderFileTypeActions.h">
+      <Filter>Plugins\EditorCustomShaderNode\Source\EditorCustomShaderNode\Shader</Filter>
+    </ClInclude>
+    <None Include="..\..\Plugins\EditorCustomShaderNode\EditorCustomShaderNode.uplugin">
+      <Filter>Plugins\EditorCustomShaderNode</Filter>
+    </None>
+    <Filter Include="Plugins\EditorCustomShaderNode\Resources">
+      <UniqueIdentifier>{54FF80E9-38FD-443F-A1F7-759BFD87BC81}</UniqueIdentifier>
+    </Filter>
+    <None Include="..\..\Plugins\EditorCustomShaderNode\Resources\Icon128.png">
+      <Filter>Plugins\EditorCustomShaderNode\Resources</Filter>
+    </None>
+    <Filter Include="Source\ComputeShader">
+      <UniqueIdentifier>{351E8682-29B9-4B17-8B53-B35F81F5A95C}</UniqueIdentifier>
+    </Filter>
+    <None Include="..\..\Source\ComputeShader\ComputeShader.Build.cs">
+      <Filter>Source\ComputeShader</Filter>
+    </None>
+    <ClCompile Include="..\..\Source\ComputeShader\ComputeShader.cpp">
+      <Filter>Source\ComputeShader</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\ComputeShader\ComputeShader.h">
+      <Filter>Source\ComputeShader</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\Source\ComputeShader\RaymarchedPhysicsShape.cpp">
+      <Filter>Source\ComputeShader</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\ComputeShader\RaymarchedPhysicsShape.h">
+      <Filter>Source\ComputeShader</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\Source\ComputeShader\RaymarchMaterialBuilder.cpp">
+      <Filter>Source\ComputeShader</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\Source\ComputeShader\RaymarchMaterialBuilder.h">
+      <Filter>Source\ComputeShader</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

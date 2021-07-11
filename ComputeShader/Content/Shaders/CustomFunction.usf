@@ -1,0 +1,164 @@
+const int MAX_STEPS = 500;
+const float MAX_DIST = 1000.0;
+const float MIN_DIST = 0.001;
+
+const float3 gDefaultCol = float3(0.0,0.0,0.0);
+const float gShinyness = 2.0;
+const float gShadowSoftness = 15.0;
+const float gFogMultiplier = 1.5;
+
+const float3 gSphereOrigin = float3(0,0.5,0);
+const float gSphereRadius = 5.0;
+const float3 gCubeOrigin = float3(0,-1.5,0);
+const float gCubeRadius = 10.0;
+
+
+struct Object
+{
+    float GetSphereIntersec(const in float3 newPos, const in float3 sphereOrig, const in float sphereRad)
+    {
+        float3 direction = newPos - sphereOrig;
+        return length(direction) - sphereRad;
+    }
+    float GetCubeIntersec(const in float3 newPos, const in float3 cubeOrig, const in float cubeRad) 
+    {
+	    return length(max(abs(newPos - cubeOrig) - cubeRad, 0.0));
+    }
+    float GetDist(const in float3 newPos)
+    {
+        float dist = MAX_DIST;
+
+        //Main sphere and cube
+        float sphereDist = GetSphereIntersec(newPos, gSphereOrigin, gSphereRadius);
+        dist = min(dist, sphereDist);
+        float cubeDist = GetCubeIntersec(newPos, gCubeOrigin, gCubeRadius);
+        dist = min(dist, cubeDist);
+
+        //Background objects (basic fog showcase)
+        sphereDist = GetSphereIntersec(newPos, float3(25.0, 1.0, 50.0), 4.0 * gSphereRadius);
+        dist = min(dist, sphereDist);
+        cubeDist = GetCubeIntersec(newPos, float3(-25.0, 1.0, 50.0), 2.0 * gCubeRadius);
+        dist = min(dist, cubeDist);
+
+        return dist;
+    } 
+    float3 GetNormal(const in float3 newPos)
+    {
+        float dist = GetDist(newPos);
+        float2 add = float2(0.01,0.0);
+        
+        float3 normal = dist - float3(
+            GetDist(newPos-add.xyy),
+            GetDist(newPos-add.yxy),
+            GetDist(newPos-add.yyx));
+        return normalize(normal);
+    }
+};
+
+struct MarchInfo
+{
+    float3 lastPos;
+    float dist;
+    float lastDist;
+    int steps;
+};
+
+struct Marcher
+{
+    void RayMarch(out MarchInfo march, const in float3 rayOrigin, const in float3 rayDirection)
+    {
+        float d = 0.0;
+        float lighting = 0.0;
+        Object obj;
+
+        for(march.steps = 0; march.steps < MAX_STEPS; march.steps++)
+        {
+            march.lastPos = rayOrigin + rayDirection * d;
+            march.lastDist = obj.GetDist(march.lastPos);
+
+            if(MIN_DIST > abs(march.lastDist)) 
+            {
+                break;
+            }
+            if(MAX_DIST < d)
+            {
+                break;
+            }
+
+            d += march.lastDist;
+        }
+
+        march.dist = d;
+    }
+    float CalcSoftShadow(const in float3 rayOrigin, const in float3 rayDirection)
+    {
+        float rayLength = 0.0;
+        const float maxShadowRenderDist = 20.0;
+
+        Object obj;
+
+        float shadow = 1.0;
+        for(int steps = 0; steps < MAX_STEPS; steps++)
+        {
+            if(rayLength > maxShadowRenderDist)
+            {
+                break;
+            }
+
+            float newDist = obj.GetDist(rayOrigin + rayLength * rayDirection);
+            if(newDist <= MIN_DIST)
+            {
+                return 0.0;
+            }
+
+            rayLength += newDist;
+            shadow = min(shadow, gShadowSoftness * newDist / rayLength);
+        }
+
+        return clamp(shadow,0.0,1.0);
+    }
+    float BlinPhong(const in float3 viewDir, const in float3 normal, float3 light)
+    {
+    	float3 halfVec = (-viewDir + light) / length(light - viewDir);
+        return pow(max(dot(halfVec, normal), 0.0), gShinyness);
+    }
+    float4 GetLighting(const in float3 viewDir, const in MarchInfo march, const in float3 lightDir, const in float3 lightPos)
+    {   
+        Object obj;
+        float3 normal = obj.GetNormal(march.lastPos);
+
+        //Lighting
+        float3 col = (float3)BlinPhong(viewDir, normal, lightDir);
+
+        //Check dist  
+        if(MIN_DIST >= march.lastDist)
+        {
+            //Cast shadows
+            //Offset with the normal to prevent stuff overlapping with the object it hit
+            col *= CalcSoftShadow(march.lastPos + normal * MIN_DIST * 25., lightDir);
+
+            //Apply fog
+            float fogAmount = march.dist / MAX_DIST;
+            col *= lerp(col, gDefaultCol, gFogMultiplier * fogAmount);
+            return float4(col, 1.0);
+        }
+        //else
+        //{
+        //    //Return default background coll, with added glow
+        //	col =  lerp(gDefaultCol, float3(float(march.steps) / 5.0, 0.0, 0.0), 0.1);
+    	//    return float4(clamp(col, 0.0, 1.0), lerp(0.0, 0.5, 0.1));
+        //}
+        return (float4)0.0;
+    }
+};
+
+//March
+MarchInfo march;
+Marcher marcher;
+marcher.RayMarch(march, rayOrigin, rayDirection);
+//Lighting
+float3 lightPos = float3(sin(time), 2.0, cos(time));
+float3 lightDir = normalize(lightPos - march.lastPos);
+float4 col = marcher.GetLighting(rayDirection, march, lightDir, lightPos);
+
+return col;

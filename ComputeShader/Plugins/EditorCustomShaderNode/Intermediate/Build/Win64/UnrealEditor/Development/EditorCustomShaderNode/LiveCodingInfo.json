@@ -1,0 +1,21 @@
+{
+	"RemapUnityFiles": 
+	{
+		"Module.EditorCustomShaderNode.cpp.obj": [
+			"CustomFileMaterialExpression.cpp.obj",
+			"EditorCustomShaderNode.cpp.obj",
+			"CustomFileMatExprCustomization.cpp.obj",
+			"ReimportShaderFileFactory.cpp.obj",
+			"ShaderFileData.cpp.obj",
+			"ShaderFileFactory.cpp.obj",
+			"ShaderFileTypeActions.cpp.obj"
+		],
+		"Module.EditorCustomShaderNode.gen.cpp.obj": [
+			"CustomFileMaterialExpression.gen.cpp.obj",
+			"EditorCustomShaderNode.init.gen.cpp.obj",
+			"ReimportShaderFileFactory.gen.cpp.obj",
+			"ShaderFileData.gen.cpp.obj",
+			"ShaderFileFactory.gen.cpp.obj"
+		]
+	}
+}

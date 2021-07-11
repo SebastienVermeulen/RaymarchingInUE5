@@ -1,0 +1,77 @@
+const int MAX_STEPS = 500;
+const float MAX_DIST = 1000.0;
+const float MIN_DIST = 0.001;
+
+const float3 gDefaultCol = float3(0.0,0.0,0.0);
+const float gShinyness = 2.0;
+const float gShadowSoftness = 15.0;
+const float gFogMultiplier = 1.5;
+
+struct Object
+{
+    float2x2 GetRot(const in float angle)
+    {
+        float s = sin(angle);
+        float c = cos(angle);
+        return float2x2(c, -s, s, c);
+    }
+
+    float GetDist(const in float3 newPos, const in float3 cubeOrig, const in float cubeRad)
+    {
+        return min(MAX_DIST, length(max(abs(newPos - cubeOrig) - cubeRad, 0.0)));
+    }
+};
+
+struct MarchInfo
+{
+    float3 lastPos;
+    float dist;
+    float lastDist;
+    int steps;
+};
+
+struct Marcher
+{
+    void RayMarch(out MarchInfo march, const in float3 rayOrigin, 
+        const in float3 rayDirection, const in float3 cubeOrig, 
+        const in float3 cubeRotation, const in float cubeRad)
+    {
+        float d = 0.0;
+        float lighting = 0.0;
+        Object obj;
+
+        for(march.steps = 0; march.steps < MAX_STEPS; march.steps++)
+        {
+            march.lastPos = rayOrigin + rayDirection * d;
+
+            march.lastPos.xy = mul(march.lastPos.xy, obj.GetRot(cubeRotation.z));
+            march.lastPos.xz = mul(march.lastPos.xz, obj.GetRot(cubeRotation.y));
+            march.lastPos.yz = mul(march.lastPos.yz, obj.GetRot(cubeRotation.x));
+
+            march.lastDist = obj.GetDist(march.lastPos, cubeOrig, cubeRad);
+
+            if(MIN_DIST > abs(march.lastDist)) 
+            {
+                break;
+            }
+            if(MAX_DIST < d)
+            {
+                break;
+            }
+
+            d += march.lastDist;
+        }
+
+        march.dist = d;
+    }
+};
+
+//March
+MarchInfo march;
+Marcher marcher;
+marcher.RayMarch(march, rayOrigin, rayDirection, cubeOrigin, cubeRotation, cubeRadius);
+
+dist = march.dist;
+lastDist = march.lastDist;
+steps = march.steps;
+return march.lastPos;

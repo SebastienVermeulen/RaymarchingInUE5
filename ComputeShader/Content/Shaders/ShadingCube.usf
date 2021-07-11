@@ -1,0 +1,90 @@
+const int MAX_STEPS = 500;
+const float MIN_DIST = 0.01;
+
+const float3 gDefaultCol = float3(0.0,0.0,0.0);
+const float gShadowSoftness = 15.0;
+
+struct Object
+{
+    float GetDist(const in float3 newPos, const in float cubeRad)
+    {
+        return length(max(abs(newPos) - cubeRad, 0.0));
+    } 
+    float3 GetNormal(const in float3 newPos, const in float3 cubeOrig, const in float cubeRad)
+    {
+        float3 pos = newPos;// - cubeOrig;
+
+        float dist = GetDist(pos, cubeRad);
+        float2 add = float2(0.01,0.0);
+        
+        float3 normal = 
+            float3(
+            GetDist(pos+add.xyy, cubeRad),
+            GetDist(pos+add.yxy, cubeRad),
+            GetDist(pos+add.yyx, cubeRad))
+                -
+            float3(
+            GetDist(pos-add.xyy, cubeRad),
+            GetDist(pos-add.yxy, cubeRad),
+            GetDist(pos-add.yyx, cubeRad));
+        return normalize(normal);
+    }
+};
+
+struct MarchInfo
+{
+    float3 lastPos;
+    float dist;
+    float lastDist;
+    int steps;
+};
+
+struct Marcher
+{
+    float CalcSoftShadow(const in float3 rayOrigin, const in float3 rayDirection, const in float3 cubeOrig, const in float cubeRad)
+    {
+        float rayLength = 0.0;
+        const float maxShadowRenderDist = 20.0;
+
+        Object obj;
+
+        float shadow = 1.0;
+        for(int steps = 0; steps < MAX_STEPS; steps++)
+        {
+            if(rayLength > maxShadowRenderDist)
+            {
+                break;
+            }
+
+            float newDist = obj.GetDist(rayOrigin + rayLength * rayDirection - cubeOrig, cubeRad);
+            if(newDist <= MIN_DIST)
+            {
+                return 0.0;
+            }
+
+            rayLength += newDist;
+            shadow = min(shadow, gShadowSoftness * newDist / rayLength);
+        }
+
+        return clamp(shadow,0.0,1.0);
+    }
+    float GetLighting(const in MarchInfo march, const in float3 lightOrigin, const in float3 lightDir, const in float3 cubeOrig, const in float cubeRad, const in float3 normal)
+    {   
+        //Check dist  
+        if(MIN_DIST >= march.lastDist)
+        {
+            return CalcSoftShadow(march.lastPos + normal * MIN_DIST * 25., lightDir, cubeOrig, cubeRad);
+        }
+        return 1.0;
+    }
+};
+
+//Lighting
+Marcher marcher;
+MarchInfo march;
+march.lastPos = lastPos;
+march.dist = distance;
+march.lastDist = lastDist;
+march.steps = steps;
+
+return marcher.GetLighting(march, lightOrigin, lightDir, cubeOrig, cubeRad, normal);

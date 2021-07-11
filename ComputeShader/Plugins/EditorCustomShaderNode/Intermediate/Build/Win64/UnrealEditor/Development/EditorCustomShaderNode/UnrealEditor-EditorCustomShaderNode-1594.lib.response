@@ -1,0 +1,14 @@
+/NOLOGO
+/errorReport:prompt
+/MACHINE:x64
+/SUBSYSTEM:WINDOWS
+/DEF
+/NAME:"UnrealEditor-EditorCustomShaderNode-1594.dll"
+/IGNORE:4221
+/NODEFAULTLIB
+"C:\Users\Vermeulen\Documents\Unreal_Projects\UE5_ComputeShader\ComputeShader\Intermediate\Build\Win64\ComputeShaderEditor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.h.obj"
+"C:\Users\Vermeulen\Documents\Unreal_Projects\UE5_ComputeShader\ComputeShader\Plugins\EditorCustomShaderNode\Intermediate\Build\Win64\UnrealEditor\Development\EditorCustomShaderNode\Module.EditorCustomShaderNode.cpp.obj"
+"C:\Users\Vermeulen\Documents\Unreal_Projects\UE5_ComputeShader\ComputeShader\Plugins\EditorCustomShaderNode\Intermediate\Build\Win64\UnrealEditor\Development\EditorCustomShaderNode\Module.EditorCustomShaderNode.gen.cpp.obj"
+"C:\Users\Vermeulen\Documents\Unreal_Projects\UE5_ComputeShader\ComputeShader\Plugins\EditorCustomShaderNode\Intermediate\Build\Win64\UnrealEditor\Development\EditorCustomShaderNode\Default.rc2.res"
+/OUT:"C:\Users\Vermeulen\Documents\Unreal_Projects\UE5_ComputeShader\ComputeShader\Plugins\EditorCustomShaderNode\Intermediate\Build\Win64\UnrealEditor\Development\EditorCustomShaderNode\UnrealEditor-EditorCustomShaderNode-1594.lib"
+/INCLUDE:IMPLEMENT_MODULE_EditorCustomShaderNode
