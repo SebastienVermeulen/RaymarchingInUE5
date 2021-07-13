@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-//#include "ToolExampleEditor/ToolExampleEditor.h"
 #include "ShaderFileFactory.h"
 #include "ShaderFileData.h"
 #include "UObject/UObjectGlobals.h"
@@ -25,7 +24,7 @@ UShaderFileFactory::UShaderFileFactory(const FObjectInitializer& ObjectInitializ
 
 UObject* UShaderFileFactory::FactoryCreateText(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const TCHAR*& Buffer, const TCHAR* BufferEnd, FFeedbackContext* Warn)
 {
-    FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, Type);
+    GEditor->GetEditorSubsystem<UImportSubsystem>()->OnAssetPreImport.Broadcast(this, InClass, InParent, InName, Type);
 
     // if class type or extension doesn't match, return
     if (InClass != UShaderFileData::StaticClass() ||
@@ -39,7 +38,7 @@ UObject* UShaderFileFactory::FactoryCreateText(UClass* InClass, UObject* InParen
     // save the source file path
     Data->SourceFilePath = UAssetImportData::SanitizeImportFilename(CurrentFilename, Data->GetOutermost());
 
-    FEditorDelegates::OnAssetPostImport.Broadcast(this, Data);
+    GEditor->GetEditorSubsystem<UImportSubsystem>()->OnAssetPostImport.Broadcast(this, Data);
 
     return Data;
 }
