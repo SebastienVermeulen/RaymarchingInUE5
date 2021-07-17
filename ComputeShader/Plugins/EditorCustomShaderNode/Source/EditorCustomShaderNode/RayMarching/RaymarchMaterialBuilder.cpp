@@ -4,8 +4,18 @@
 #include "RaymarchedPhysicsShape.h"
 #include "Factories/MaterialFactoryNew.h"
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "../CustomExpression/CustomFileMaterialExpression.h"
+#include "Templates/SharedPointer.h"
+#include "RaymarchedLightingProperties.h"
+
 #include "Materials/MaterialExpressionScalarParameter.h"
+#include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialExpressionNormalize.h"
+#include "Materials/MaterialExpressionCameraPositionWS.h"
+#include "Materials/MaterialExpressionWorldPosition.h"
+#include "Materials/MaterialExpressionSubtract.h"
+#include "Materials/MaterialExpressionSceneTexture.h"
+#include "Materials/MaterialExpressionComponentMask.h"
+#include "Materials/MaterialExpressionLinearInterpolate.h"
 
 ARaymarchMaterialBuilder::ARaymarchMaterialBuilder()
 	:RaymarchedPhysicsShapes{}
@@ -56,6 +66,13 @@ void ARaymarchMaterialBuilder::CreateMaterial()
 }
 void ARaymarchMaterialBuilder::PopulateMaterial()
 {
+	//Setup lighting
+	LightingData.SetupLighting(Material, LightingProperties);
+
+	//Setup universally used variables
+	SetupStaticVariables();
+
+	//Setup shapes
 	//Go over all the shape-properties to create the shapes
 	for (int i = 0; i < RaymarchedShapesProperties.Num(); i++) 
 	{
@@ -68,7 +85,7 @@ void ARaymarchMaterialBuilder::PopulateMaterial()
 		if (shape != nullptr)
 		{
 			//Create it
-			CreateShape(properties, *shape, i);
+			RaymarchedPhysicsShapes.Add(properties.CreateShape(Material, *shape, i));
 		}
 		else 
 		{
@@ -93,137 +110,44 @@ void ARaymarchMaterialBuilder::UpdateMaterial()
 	}
 }
 
-void ARaymarchMaterialBuilder::CreateShape(const FRaymarchedShapeProperties properties, const FShapeShaderProperties shape, const int idx)
+void ARaymarchMaterialBuilder::SetupStaticVariables()
 {
-	//Create the physics object
-	ARaymarchedPhysicsShape* physicsShape = ARaymarchedPhysicsShape::Create(properties.Radius);
+	UMaterialExpressionWorldPosition* absWP = NewObject<UMaterialExpressionWorldPosition>(Material);
+	Material->Expressions.Add(absWP);
+	UMaterialExpressionCameraPositionWS* camPos = NewObject<UMaterialExpressionCameraPositionWS>(Material);
+	Material->Expressions.Add(camPos);
+	UMaterialExpressionSubtract* subtr = NewObject<UMaterialExpressionSubtract>(Material);
+	Material->Expressions.Add(subtr);
+	UMaterialExpressionNormalize* norm = NewObject<UMaterialExpressionNormalize>(Material);
+	Material->Expressions.Add(norm);
 
-	physicsShape->SetActorRotation(properties.StartRotation, ETeleportType::TeleportPhysics);
-	physicsShape->SetActorLocation(properties.StartPosition, false, nullptr, ETeleportType::TeleportPhysics);
-	
-	//Add the object to the list
-	RaymarchedPhysicsShapes.Add(physicsShape);
+	subtr->A.Expression = absWP;
+	subtr->B.Expression = camPos;
+	norm->VectorInput.Expression = subtr;
 
-#pragma region CustomShaders
-	//Creating the shaders
-	UCustomFileMaterialExpression* expressionMarch = NewObject<UCustomFileMaterialExpression>(Material);
-	expressionMarch->CodeFile = shape.RayMarch;
-	Material->Expressions.Add(expressionMarch);
-	UCustomFileMaterialExpression* expressionShading = NewObject<UCustomFileMaterialExpression>(Material);
-	expressionShading->CodeFile = shape.Shading;
-	Material->Expressions.Add(expressionShading);
-	UCustomFileMaterialExpression* expressionLighting = NewObject<UCustomFileMaterialExpression>(Material);
-	expressionLighting->CodeFile = shape.Lighting;
-	Material->Expressions.Add(expressionLighting);
+	FRaymarchedShapeProperties temp;
+	temp.RayDir = norm;
+	temp.RayOrig = camPos;
 
-	FCustomInput CustomInput;
-	FCustomOutput CustomOutput;
-	
-	//Custom marching
-	expressionMarch->Description = "Raymarch";
-	//Inputs
-	expressionMarch->Inputs.Empty();
-	CustomInput.InputName = TEXT("time");
-	expressionMarch->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("rayOrigin");
-	expressionMarch->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("rayDirection");
-	expressionMarch->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("cubeOrigin");
-	expressionMarch->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("cubeRadius");
-	expressionMarch->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("cubeRotation");
-	expressionMarch->Inputs.Add(CustomInput);
-	//Outputs
-	expressionMarch->OutputType = ECustomMaterialOutputType::CMOT_Float3;
-	expressionMarch->AdditionalOutputs.Empty();
-	CustomOutput.OutputName = TEXT("dist");
-	CustomOutput.OutputType = ECustomMaterialOutputType::CMOT_Float1;
-	expressionMarch->AdditionalOutputs.Add(CustomOutput);
-	CustomOutput.OutputName = TEXT("lastDist");
-	CustomOutput.OutputType = ECustomMaterialOutputType::CMOT_Float1;
-	expressionMarch->AdditionalOutputs.Add(CustomOutput);
-	CustomOutput.OutputName = TEXT("steps");
-	CustomOutput.OutputType = ECustomMaterialOutputType::CMOT_Float1;
-	expressionMarch->AdditionalOutputs.Add(CustomOutput);
-	//Custom shading
-	expressionShading->Description = "Shading";
-	//Inputs
-	expressionShading->Inputs.Empty();
-	CustomInput.InputName = TEXT("lastPos");
-	expressionShading->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("distance");
-	expressionShading->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("lastDist");
-	expressionShading->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("steps");
-	expressionShading->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("lightOrigin");
-	expressionShading->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("cubeOrigin");
-	expressionShading->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("cubeRad");
-	expressionShading->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("normal");
-	expressionShading->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("lightDir");
-	expressionShading->Inputs.Add(CustomInput);
-	//Outputs
-	expressionShading->OutputType = ECustomMaterialOutputType::CMOT_Float1;
-	//Custom lighting
-	expressionLighting->Description = "lighting";
-	//Inputs
-	expressionLighting->Inputs.Empty();
-	CustomInput.InputName = TEXT("lastPos");
-	expressionLighting->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("distance");
-	expressionLighting->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("lastDist");
-	expressionLighting->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("steps");
-	expressionLighting->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("rayPos");
-	expressionLighting->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("rayDirection");
-	expressionLighting->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("lightOrigin");
-	expressionLighting->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("cubeOrigin");
-	expressionLighting->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("cubeRad");
-	expressionLighting->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("shinyness");
-	expressionLighting->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("fogMultiplier");
-	expressionLighting->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("diffuseColor");
-	expressionLighting->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("specularColor");
-	expressionLighting->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("lightColor");
-	expressionLighting->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("ambientColor");
-	expressionLighting->Inputs.Add(CustomInput);
-	//Outputs
-	expressionLighting->OutputType = ECustomMaterialOutputType::CMOT_Float4;
-	expressionLighting->AdditionalOutputs.Empty();
-	CustomOutput.OutputName = TEXT("normal");
-	CustomOutput.OutputType = ECustomMaterialOutputType::CMOT_Float3;
-	expressionLighting->AdditionalOutputs.Add(CustomOutput);
-	CustomOutput.OutputName = TEXT("lightDir");
-	CustomOutput.OutputType = ECustomMaterialOutputType::CMOT_Float3;
-	expressionLighting->AdditionalOutputs.Add(CustomOutput);
-#pragma endregion CustomShaders
+	//Create class as parent to avoid stupid stuff
+	UClass* theClass = FindObject<UClass>(ANY_PACKAGE, TEXT("MaterialExpressionSceneTexture"));
+	UMaterialExpression* sceneTex = NewObject<UMaterialExpression>(Material, theClass);
+	Material->Expressions.Add(sceneTex);
 
-	//Parameters
-	UMaterialExpressionScalarParameter* param = NewObject<UMaterialExpressionScalarParameter>(Material);
-	Material->Expressions.Add(param);
-	param->ParameterName = TEXT("ObjectOrigin_" + idx);
-	param = NewObject<UMaterialExpressionScalarParameter>(Material);
-	Material->Expressions.Add(param);
-	param->ParameterName = TEXT("ObjectRotation_" + idx);
-	param = NewObject<UMaterialExpressionScalarParameter>(Material);
-	Material->Expressions.Add(param);
-	param->ParameterName = TEXT("ObjectRadius_" + idx);
+	//Cast using C style, to avoid any constructors
+	UMaterialExpressionSceneTexture* sceneTexCast = (UMaterialExpressionSceneTexture*)(sceneTex);
+	//Variables
+	sceneTexCast->SceneTextureId = ESceneTextureId::PPI_PostProcessInput0;
+
+	UMaterialExpressionComponentMask* mask = NewObject<UMaterialExpressionComponentMask>(Material);
+	Material->Expressions.Add(mask);
+	mask->R = 1;
+	mask->G = 1;
+	mask->B = 1;
+	mask->A = 0;
+	mask->Input.Expression = sceneTexCast;
+
+	UMaterialExpressionLinearInterpolate* lerp = NewObject<UMaterialExpressionLinearInterpolate>(Material);
+	Material->Expressions.Add(mask);
+	lerp->A.Expression = mask;
 }

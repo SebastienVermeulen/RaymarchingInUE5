@@ -4,6 +4,13 @@
 #include "ShapeShaderProperties.h"
 #include "RaymarchedShapeProperties.generated.h"
 
+class ARaymarchedPhysicsShape;
+class UCustomFileMaterialExpression;
+class UMaterialExpressionVectorParameter;
+class UMaterialExpressionScalarParameter;
+class UMaterialExpressionNormalize;
+class UMaterialExpressionCameraPositionWS;
+
 USTRUCT(BlueprintType)
 struct FRaymarchedShapeProperties
 {
@@ -11,6 +18,13 @@ struct FRaymarchedShapeProperties
 	
 #pragma region Functions
 public:	
+	ARaymarchedPhysicsShape* CreateShape(UMaterial* Material, const FShapeShaderProperties shape, const int idx);
+
+	void CreateParameters(UMaterial* Material, const int idx);
+
+	void HookupMarching(UMaterial* Material, const FShapeShaderProperties shape, const int idx);
+	void HookupShading(UMaterial* Material, const FShapeShaderProperties shape, const int idx);
+	void HookupLighting(UMaterial* Material, const FShapeShaderProperties shape, const int idx);
 
 protected:
 
@@ -30,9 +44,29 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Radius;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FColor DiffuseColor;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FColor SpecularColor;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Shinyness;
+
+	static UMaterialExpressionNormalize* RayDir;
+	static UMaterialExpressionCameraPositionWS* RayOrig;
+
 protected:
 
 private:
+	UCustomFileMaterialExpression* ExpressionMarch;
+	UCustomFileMaterialExpression* ExpressionShading;
+	UCustomFileMaterialExpression* ExpressionLighting;
 
+	UMaterialExpressionVectorParameter* ObjectOriginParam;
+	UMaterialExpressionVectorParameter* ObjectRotationParam;
+	UMaterialExpressionScalarParameter* ObjectRadiusParam;
+
+	UMaterialExpressionVectorParameter* DiffuseColorParam;
+	UMaterialExpressionVectorParameter* SpecularColorParam;
+	UMaterialExpressionScalarParameter* ShinynessParam;
 #pragma endregion
 };

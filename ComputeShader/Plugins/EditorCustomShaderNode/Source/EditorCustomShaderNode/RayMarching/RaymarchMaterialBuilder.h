@@ -4,10 +4,11 @@
 #include "GameFramework/Actor.h"
 #include "RaymarchedShapeProperties.h"
 #include "ShapeShaderProperties.h"
+#include "RaymarchedLightingData.h"
 #include "RaymarchMaterialBuilder.generated.h"
 
 class ARaymarchedPhysicsShape;
-class UMaterial;
+struct FRaymarchedLightingProperties;
 
 UCLASS()
 class ARaymarchMaterialBuilder : public AActor
@@ -22,13 +23,12 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-
 private:
 	void CreateMaterial();
 	void PopulateMaterial();
 	void UpdateMaterial();
 
-	void CreateShape(const FRaymarchedShapeProperties properties, const FShapeShaderProperties shape, const int idx);
+	void SetupStaticVariables();
 #pragma endregion
 
 #pragma region Variables
@@ -37,13 +37,21 @@ public:
 protected:
 
 private:
-	TArray<ARaymarchedPhysicsShape*> RaymarchedPhysicsShapes;
+	//Settings and data
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
 	TArray<FRaymarchedShapeProperties> RaymarchedShapesProperties;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
 	TArray<FShapeShaderProperties> ShapeShaderProperties;
+	//Object during runtime
+	TArray<ARaymarchedPhysicsShape*> RaymarchedPhysicsShapes;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
 	UMaterial* Material;
+
+	//Settings and data
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
+	FRaymarchedLightingProperties LightingProperties;
+	//Object during runtime
+	FRaymarchedLightingData LightingData;
 #pragma endregion
 };
