@@ -18,6 +18,8 @@ struct FRaymarchedShapeProperties
 	
 #pragma region Functions
 public:	
+	FRaymarchedShapeProperties();
+
 	ARaymarchedPhysicsShape* CreateShape(UMaterial* Material, const FShapeShaderProperties shape, const int idx);
 
 	void CreateParameters(UMaterial* Material, const int idx);
@@ -55,6 +57,9 @@ public:
 	static UMaterialExpressionCameraPositionWS* RayOrig;
 
 protected:
+#if WITH_EDITOR
+	float TotalEditorHeight;
+#endif
 
 private:
 	UCustomFileMaterialExpression* ExpressionMarch;

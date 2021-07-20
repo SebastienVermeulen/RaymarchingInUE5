@@ -18,8 +18,8 @@
 #include "Materials/MaterialExpressionLinearInterpolate.h"
 
 ARaymarchMaterialBuilder::ARaymarchMaterialBuilder()
-	:RaymarchedPhysicsShapes{}
-	, RaymarchedShapesProperties{}
+	:RaymarchedShapesProperties{}
+	, RaymarchedPhysicsShapes{}
 	, Material{}
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -63,6 +63,11 @@ void ARaymarchMaterialBuilder::CreateMaterial()
 	FAssetRegistryModule::AssetCreated(Material);
 	Package->FullyLoad();
 	Package->SetDirtyFlag(true);
+
+#if WITH_EDITOR
+	Material->EditorX = 700.0f;
+	Material->EditorY = -100.0f;
+#endif
 }
 void ARaymarchMaterialBuilder::PopulateMaterial()
 {
@@ -112,6 +117,7 @@ void ARaymarchMaterialBuilder::UpdateMaterial()
 
 void ARaymarchMaterialBuilder::SetupStaticVariables()
 {
+
 	UMaterialExpressionWorldPosition* absWP = NewObject<UMaterialExpressionWorldPosition>(Material);
 	Material->Expressions.Add(absWP);
 	UMaterialExpressionCameraPositionWS* camPos = NewObject<UMaterialExpressionCameraPositionWS>(Material);
@@ -125,7 +131,7 @@ void ARaymarchMaterialBuilder::SetupStaticVariables()
 	subtr->B.Expression = camPos;
 	norm->VectorInput.Expression = subtr;
 
-	FRaymarchedShapeProperties temp;
+	FRaymarchedShapeProperties temp{};
 	temp.RayDir = norm;
 	temp.RayOrig = camPos;
 
@@ -150,4 +156,22 @@ void ARaymarchMaterialBuilder::SetupStaticVariables()
 	UMaterialExpressionLinearInterpolate* lerp = NewObject<UMaterialExpressionLinearInterpolate>(Material);
 	Material->Expressions.Add(mask);
 	lerp->A.Expression = mask;
+
+#if WITH_EDITOR
+	absWP->MaterialExpressionEditorX = -1700.0f;
+	absWP->MaterialExpressionEditorY = -100.0f;	
+	camPos->MaterialExpressionEditorX = -1700.0f;
+	camPos->MaterialExpressionEditorY = -100.0f + absWP->GetHeight();
+	subtr->MaterialExpressionEditorX = -1450.0f;
+	subtr->MaterialExpressionEditorY = -100.0f;
+	norm->MaterialExpressionEditorX = -1350.0f;
+	norm->MaterialExpressionEditorY = -100.0f;
+
+	sceneTexCast->MaterialExpressionEditorX = 100.0f;
+	sceneTexCast->MaterialExpressionEditorY = -100.0f;
+	mask->MaterialExpressionEditorX = 350.0f;
+	mask->MaterialExpressionEditorY = -100.0f;
+	lerp->MaterialExpressionEditorX = 500.0f;
+	lerp->MaterialExpressionEditorY = -100.0f;
+#endif
 }

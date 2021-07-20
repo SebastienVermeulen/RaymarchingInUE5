@@ -9,6 +9,29 @@
 UMaterialExpressionNormalize* FRaymarchedShapeProperties::RayDir = nullptr;
 UMaterialExpressionCameraPositionWS* FRaymarchedShapeProperties::RayOrig = nullptr;
 
+FRaymarchedShapeProperties::FRaymarchedShapeProperties() 
+	:ShapeType{}
+	, StartPosition{}
+	, StartRotation{}
+	, Radius{}
+	, DiffuseColor{}
+	, SpecularColor{}
+	, Shinyness{}
+#if WITH_EDITOR
+	, TotalEditorHeight{1500}
+#endif
+	, ExpressionMarch{ nullptr }
+	, ExpressionShading{ nullptr }
+	, ExpressionLighting{ nullptr }
+	, ObjectOriginParam{ nullptr }
+	, ObjectRotationParam{ nullptr }
+	, ObjectRadiusParam{ nullptr }
+	, DiffuseColorParam{ nullptr }
+	, SpecularColorParam{ nullptr }
+	, ShinynessParam{ nullptr }
+{	
+}
+
 ARaymarchedPhysicsShape* FRaymarchedShapeProperties::CreateShape(UMaterial* Material, const FShapeShaderProperties shape, const int idx)
 {
 	//Create the physics object
@@ -54,6 +77,30 @@ void FRaymarchedShapeProperties::CreateParameters(UMaterial* Material, const int
 	Material->Expressions.Add(ShinynessParam);
 	ShinynessParam->ParameterName = TEXT("Shinyness_" + idx);
 	ShinynessParam->DefaultValue = Shinyness;
+
+#if WITH_EDITOR
+	float editorOffset = TotalEditorHeight * idx;
+	float localTotalOffset = 0.0f;
+
+	ObjectOriginParam->MaterialExpressionEditorX = -1000;
+	ObjectOriginParam->MaterialExpressionEditorY = localTotalOffset + editorOffset;
+	localTotalOffset += ObjectOriginParam->GetHeight() + 50.0f;
+	ObjectRotationParam->MaterialExpressionEditorX = -1000;
+	ObjectRotationParam->MaterialExpressionEditorY = localTotalOffset + editorOffset;
+	localTotalOffset += ObjectRotationParam->GetHeight() + 50.0f;
+	ObjectRadiusParam->MaterialExpressionEditorX = -1000;
+	ObjectRadiusParam->MaterialExpressionEditorY = localTotalOffset + editorOffset;
+	localTotalOffset += ObjectRadiusParam->GetHeight() + 100.0f;
+
+	DiffuseColorParam->MaterialExpressionEditorX = -1000;
+	DiffuseColorParam->MaterialExpressionEditorY = localTotalOffset + editorOffset;
+	localTotalOffset += DiffuseColorParam->GetHeight() + 50.0f;
+	SpecularColorParam->MaterialExpressionEditorX = -1000;
+	SpecularColorParam->MaterialExpressionEditorY = localTotalOffset + editorOffset;
+	localTotalOffset += SpecularColorParam->GetHeight() + 50.0f;
+	ShinynessParam->MaterialExpressionEditorX = -1000;
+	ShinynessParam->MaterialExpressionEditorY = localTotalOffset + editorOffset;
+#endif
 }
 
 void FRaymarchedShapeProperties::HookupMarching(UMaterial* Material, const FShapeShaderProperties shape, const int idx)
@@ -88,7 +135,6 @@ void FRaymarchedShapeProperties::HookupMarching(UMaterial* Material, const FShap
 	ExpressionMarch->Inputs.Add(CustomInput);
 	//Outputs
 	ExpressionMarch->OutputType = ECustomMaterialOutputType::CMOT_Float3;
-	ExpressionMarch->AdditionalOutputs.Empty();
 	CustomOutput.OutputName = TEXT("dist");
 	CustomOutput.OutputType = ECustomMaterialOutputType::CMOT_Float1;
 	ExpressionMarch->AdditionalOutputs.Add(CustomOutput);
@@ -98,7 +144,16 @@ void FRaymarchedShapeProperties::HookupMarching(UMaterial* Material, const FShap
 	CustomOutput.OutputName = TEXT("steps");
 	CustomOutput.OutputType = ECustomMaterialOutputType::CMOT_Float1;
 	ExpressionMarch->AdditionalOutputs.Add(CustomOutput);
+	ExpressionMarch->RebuildOutputs();
 #pragma endregion CustomShaders
+
+#if WITH_EDITOR
+	float editorOffset = TotalEditorHeight * idx;
+	float localTotalOffset = ExpressionMarch->GetHeight() + 50.0f;
+
+	ExpressionMarch->MaterialExpressionEditorX = -700;
+	ExpressionMarch->MaterialExpressionEditorY = editorOffset;
+#endif
 }
 void FRaymarchedShapeProperties::HookupShading(UMaterial* Material, const FShapeShaderProperties shape, const int idx)
 {
@@ -155,6 +210,13 @@ void FRaymarchedShapeProperties::HookupShading(UMaterial* Material, const FShape
 	compareInputStr = "steps";
 	compareOutputStr = "steps";
 	ExpressionShading->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda), ExpressionMarch);
+
+#if WITH_EDITOR
+	float editorOffset = TotalEditorHeight * idx;
+
+	ExpressionShading->MaterialExpressionEditorX = -400;
+	ExpressionShading->MaterialExpressionEditorY = editorOffset;
+#endif
 }
 void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShapeShaderProperties shape, const int idx)
 {
@@ -216,6 +278,7 @@ void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShap
 	CustomOutput.OutputName = TEXT("lightDir");
 	CustomOutput.OutputType = ECustomMaterialOutputType::CMOT_Float3;
 	ExpressionLighting->AdditionalOutputs.Add(CustomOutput);
+	ExpressionLighting->RebuildOutputs();
 #pragma endregion CustomShaders
 
 	FName compareInputStr = "";
@@ -234,4 +297,12 @@ void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShap
 	compareInputStr = "steps";
 	compareOutputStr = "steps";
 	ExpressionLighting->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda), ExpressionMarch);
+
+#if WITH_EDITOR
+	float editorOffset = TotalEditorHeight * idx;
+	float localTotalOffset = ExpressionShading->GetHeight() + 150.0f;
+
+	ExpressionLighting->MaterialExpressionEditorX = -400;
+	ExpressionLighting->MaterialExpressionEditorY = localTotalOffset + editorOffset;
+#endif
 }
