@@ -2,10 +2,15 @@
 
 #include "RaymarchMaterialBuilder.h"
 #include "RaymarchedPhysicsShape.h"
+#include "RaymarchedLightingProperties.h"
+#include "../CustomExpression/CustomFileMaterialExpression.h"
+
 #include "Factories/MaterialFactoryNew.h"
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "Templates/SharedPointer.h"
-#include "RaymarchedLightingProperties.h"
+#include "Templates/SharedPointer.h" 
+#include "Components/PostProcessComponent.h"
+
+#include "Materials/MaterialInstanceDynamic.h"
 
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
@@ -16,15 +21,24 @@
 #include "Materials/MaterialExpressionSceneTexture.h"
 #include "Materials/MaterialExpressionComponentMask.h"
 #include "Materials/MaterialExpressionLinearInterpolate.h"
+#include "Materials/MaterialExpressionMultiply.h"
 
 ARaymarchMaterialBuilder::ARaymarchMaterialBuilder()
 	:RaymarchedShapesProperties{}
 	, RaymarchedPhysicsShapes{}
 	, Material{}
+	, MaterialBaseName{ "M_Material" }
+	, PackageName{ "/Game/Materials/" }
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	PostProcessing = CreateDefaultSubobject<UPostProcessComponent>(TEXT("Raymarch Volume"));
+	PostProcessing->AttachToComponent(RootComponent,
+		FAttachmentTransformRules::FAttachmentTransformRules(EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, false));
+
 	CreateMaterial();
+
+	UpdateDynamicMaterial();
 }
 void ARaymarchMaterialBuilder::BeginPlay()
 {
@@ -35,6 +49,8 @@ void ARaymarchMaterialBuilder::BeginPlay()
 		CreateMaterial();
 	}
 	PopulateMaterial();
+
+	UpdateDynamicMaterial();
 }
 void ARaymarchMaterialBuilder::Tick(float DeltaTime)
 {
@@ -45,10 +61,8 @@ void ARaymarchMaterialBuilder::Tick(float DeltaTime)
 
 void ARaymarchMaterialBuilder::CreateMaterial()
 {
-	FString MaterialBaseName = "M_Material";
-	FString PackageName = "/Game/";
-	PackageName += MaterialBaseName;
-	UPackage* Package = CreatePackage(*PackageName);
+	FString tempPackageName = PackageName + MaterialBaseName;
+	UPackage* Package = CreatePackage(*tempPackageName);
 
 	// Create an unreal material asset
 	UMaterialFactoryNew* MaterialFactory = NewObject<UMaterialFactoryNew>();
@@ -62,10 +76,16 @@ void ARaymarchMaterialBuilder::CreateMaterial()
 
 	FAssetRegistryModule::AssetCreated(Material);
 	Package->FullyLoad();
-	Package->SetDirtyFlag(true);
+	Package->MarkPackageDirty();
+
+	//Set some material settings
+	Material->MaterialDomain = EMaterialDomain::MD_PostProcess;
+	Material->SetShadingModel(EMaterialShadingModel::MSM_Unlit);
+	Material->bCastRayTracedShadows = false;
+	Material->BlendableLocation = EBlendableLocation::BL_BeforeTranslucency;
 
 #if WITH_EDITOR
-	Material->EditorX = 700.0f;
+	Material->EditorX = 1500.0f;
 	Material->EditorY = -100.0f;
 #endif
 }
@@ -75,7 +95,7 @@ void ARaymarchMaterialBuilder::PopulateMaterial()
 	LightingData.SetupLighting(Material, LightingProperties);
 
 	//Setup universally used variables
-	SetupStaticVariables();
+	UMaterialExpressionLinearInterpolate* lerp = SetupStaticVariables();
 
 	//Setup shapes
 	//Go over all the shape-properties to create the shapes
@@ -90,7 +110,7 @@ void ARaymarchMaterialBuilder::PopulateMaterial()
 		if (shape != nullptr)
 		{
 			//Create it
-			RaymarchedPhysicsShapes.Add(properties.CreateShape(Material, *shape, i));
+			RaymarchedPhysicsShapes.Add(properties.CreateShape(Material, *shape, LightingData, i));
 		}
 		else 
 		{
@@ -98,6 +118,15 @@ void ARaymarchMaterialBuilder::PopulateMaterial()
 		}
 	}
 
+	//Connect the different shapes in the material
+	SetupConnectingVariables(lerp);
+
+	UPackage* package = Material->GetPackage();
+	package->FullyLoad();
+	package->MarkPackageDirty();
+	UPackage::SavePackage(package, Material, EObjectFlags::RF_Public | EObjectFlags::RF_Standalone, *(PackageName + MaterialBaseName + FPackageName::GetAssetPackageExtension()),
+		GError, nullptr, true, true, SAVE_NoError);
+	
 	// Let the material update itself if necessary
 	Material->PreEditChange(NULL);
 	Material->PostEditChange();
@@ -115,7 +144,7 @@ void ARaymarchMaterialBuilder::UpdateMaterial()
 	}
 }
 
-void ARaymarchMaterialBuilder::SetupStaticVariables()
+UMaterialExpressionLinearInterpolate* ARaymarchMaterialBuilder::SetupStaticVariables()
 {
 
 	UMaterialExpressionWorldPosition* absWP = NewObject<UMaterialExpressionWorldPosition>(Material);
@@ -154,7 +183,7 @@ void ARaymarchMaterialBuilder::SetupStaticVariables()
 	mask->Input.Expression = sceneTexCast;
 
 	UMaterialExpressionLinearInterpolate* lerp = NewObject<UMaterialExpressionLinearInterpolate>(Material);
-	Material->Expressions.Add(mask);
+	Material->Expressions.Add(lerp);
 	lerp->A.Expression = mask;
 
 #if WITH_EDITOR
@@ -167,11 +196,61 @@ void ARaymarchMaterialBuilder::SetupStaticVariables()
 	norm->MaterialExpressionEditorX = -1350.0f;
 	norm->MaterialExpressionEditorY = -100.0f;
 
-	sceneTexCast->MaterialExpressionEditorX = 100.0f;
+	sceneTexCast->MaterialExpressionEditorX = 900.0f;
 	sceneTexCast->MaterialExpressionEditorY = -100.0f;
-	mask->MaterialExpressionEditorX = 350.0f;
+	mask->MaterialExpressionEditorX = 1150.0f;
 	mask->MaterialExpressionEditorY = -100.0f;
-	lerp->MaterialExpressionEditorX = 500.0f;
+	lerp->MaterialExpressionEditorX = 1300.0f;
 	lerp->MaterialExpressionEditorY = -100.0f;
 #endif
+
+	return lerp;
+}
+void ARaymarchMaterialBuilder::SetupConnectingVariables(UMaterialExpressionLinearInterpolate* lerp)
+{
+	if (RaymarchedShapesProperties.Num() == 1)
+	{
+		UMaterialExpressionComponentMask* maskRGB = NewObject<UMaterialExpressionComponentMask>(Material);
+		Material->Expressions.Add(maskRGB);
+		maskRGB->R = 1;
+		maskRGB->G = 1;
+		maskRGB->B = 1;
+		maskRGB->A = 0;
+		maskRGB->Input.Expression = RaymarchedShapesProperties[0].ExpressionLighting;
+		UMaterialExpressionComponentMask* maskA = NewObject<UMaterialExpressionComponentMask>(Material);
+		Material->Expressions.Add(maskA);
+		maskA->R = 0;
+		maskA->G = 0;
+		maskA->B = 0;
+		maskA->A = 1;
+		maskA->Input.Expression = RaymarchedShapesProperties[0].ExpressionLighting;
+
+		UMaterialExpressionMultiply* mult = NewObject<UMaterialExpressionMultiply>(Material);
+		Material->Expressions.Add(mult);
+		mult->A.Expression = maskRGB;
+		mult->B.Expression = RaymarchedShapesProperties[0].ExpressionShading;
+
+		lerp->B.Expression = mult;
+		lerp->Alpha.Expression = maskA;
+
+		Material->EmissiveColor.Expression = lerp;
+
+#if WITH_EDITOR
+		maskRGB->MaterialExpressionEditorX = 400.0f;
+		maskRGB->MaterialExpressionEditorY = RaymarchedShapesProperties[0].ExpressionLighting->MaterialExpressionEditorY;
+		maskA->MaterialExpressionEditorX = 400.0f;
+		maskA->MaterialExpressionEditorY = maskRGB->MaterialExpressionEditorY + maskRGB->GetHeight();
+		mult->MaterialExpressionEditorX = 700.0f;
+		mult->MaterialExpressionEditorY = RaymarchedShapesProperties[0].ExpressionShading->MaterialExpressionEditorY;
+#endif
+	}
+	else if (RaymarchedPhysicsShapes.Num() > 1)
+	{
+	}
+}
+
+void ARaymarchMaterialBuilder::UpdateDynamicMaterial()
+{
+	DynamicMaterial = UMaterialInstanceDynamic::Create(Material, GetWorld());
+	PostProcessing->AddOrUpdateBlendable(DynamicMaterial);
 }

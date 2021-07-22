@@ -8,6 +8,9 @@
 #include "RaymarchMaterialBuilder.generated.h"
 
 class ARaymarchedPhysicsShape;
+class UMaterialExpressionLinearInterpolate;
+class UPostProcessComponent;
+class UMaterialInstanceDynamic;
 struct FRaymarchedLightingProperties;
 
 UCLASS()
@@ -28,7 +31,11 @@ private:
 	void PopulateMaterial();
 	void UpdateMaterial();
 
-	void SetupStaticVariables();
+	UMaterialExpressionLinearInterpolate* SetupStaticVariables();
+	void SetupConnectingVariables(UMaterialExpressionLinearInterpolate* lerp);
+
+	void UpdateDynamicMaterial();
+
 #pragma endregion
 
 #pragma region Variables
@@ -38,18 +45,23 @@ protected:
 
 private:
 	//Settings and data
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName = "Shape Details", Category = "Shapes", meta = (AllowPrivateAccess = true))
 	TArray<FRaymarchedShapeProperties> RaymarchedShapesProperties;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName = "Shape Properties", Category = "Shapes", meta = (AllowPrivateAccess = true))
 	TArray<FShapeShaderProperties> ShapeShaderProperties;
 	//Object during runtime
 	TArray<ARaymarchedPhysicsShape*> RaymarchedPhysicsShapes;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
+	FString MaterialBaseName = "M_Material";
+	FString PackageName = "/Game/Materials/";
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, DisplayName = "Dynamic Material", Category = "Material", meta = (AllowPrivateAccess = true))
 	UMaterial* Material;
+	UMaterialInstanceDynamic* DynamicMaterial;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, DisplayName = "Dynamic Material", Category = "Material", meta = (AllowPrivateAccess = true))
+	UPostProcessComponent* PostProcessing;
 
 	//Settings and data
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName = "Lighting Properties", Category = "Lighting", meta = (AllowPrivateAccess = true))
 	FRaymarchedLightingProperties LightingProperties;
 	//Object during runtime
 	FRaymarchedLightingData LightingData;

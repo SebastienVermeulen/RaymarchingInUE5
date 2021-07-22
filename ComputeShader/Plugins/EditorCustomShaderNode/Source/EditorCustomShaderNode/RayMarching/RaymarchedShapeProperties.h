@@ -11,6 +11,8 @@ class UMaterialExpressionScalarParameter;
 class UMaterialExpressionNormalize;
 class UMaterialExpressionCameraPositionWS;
 
+struct FRaymarchedLightingData;
+
 USTRUCT(BlueprintType)
 struct FRaymarchedShapeProperties
 {
@@ -20,17 +22,16 @@ struct FRaymarchedShapeProperties
 public:	
 	FRaymarchedShapeProperties();
 
-	ARaymarchedPhysicsShape* CreateShape(UMaterial* Material, const FShapeShaderProperties shape, const int idx);
-
-	void CreateParameters(UMaterial* Material, const int idx);
-
-	void HookupMarching(UMaterial* Material, const FShapeShaderProperties shape, const int idx);
-	void HookupShading(UMaterial* Material, const FShapeShaderProperties shape, const int idx);
-	void HookupLighting(UMaterial* Material, const FShapeShaderProperties shape, const int idx);
+	ARaymarchedPhysicsShape* CreateShape(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx);
 
 protected:
 
 private:
+	void CreateParameters(UMaterial* Material, const int idx);
+
+	void HookupMarching(UMaterial* Material, const FShapeShaderProperties shape, const int idx);
+	void HookupShading(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx);
+	void HookupLighting(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx);
 
 #pragma endregion
 
@@ -56,16 +57,16 @@ public:
 	static UMaterialExpressionNormalize* RayDir;
 	static UMaterialExpressionCameraPositionWS* RayOrig;
 
+	UCustomFileMaterialExpression* ExpressionMarch;
+	UCustomFileMaterialExpression* ExpressionShading;
+	UCustomFileMaterialExpression* ExpressionLighting;
+
 protected:
 #if WITH_EDITOR
 	float TotalEditorHeight;
 #endif
 
 private:
-	UCustomFileMaterialExpression* ExpressionMarch;
-	UCustomFileMaterialExpression* ExpressionShading;
-	UCustomFileMaterialExpression* ExpressionLighting;
-
 	UMaterialExpressionVectorParameter* ObjectOriginParam;
 	UMaterialExpressionVectorParameter* ObjectRotationParam;
 	UMaterialExpressionScalarParameter* ObjectRadiusParam;

@@ -5,6 +5,7 @@
 #include "RaymarchedPhysicsShape.h"
 #include "Materials/MaterialExpressionNormalize.h"
 #include "Materials/MaterialExpressionCameraPositionWS.h"
+#include "RaymarchedLightingData.h"
 
 UMaterialExpressionNormalize* FRaymarchedShapeProperties::RayDir = nullptr;
 UMaterialExpressionCameraPositionWS* FRaymarchedShapeProperties::RayOrig = nullptr;
@@ -32,7 +33,7 @@ FRaymarchedShapeProperties::FRaymarchedShapeProperties()
 {	
 }
 
-ARaymarchedPhysicsShape* FRaymarchedShapeProperties::CreateShape(UMaterial* Material, const FShapeShaderProperties shape, const int idx)
+ARaymarchedPhysicsShape* FRaymarchedShapeProperties::CreateShape(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx)
 {
 	//Create the physics object
 	ARaymarchedPhysicsShape* physicsShape = ARaymarchedPhysicsShape::Create(Radius);
@@ -43,8 +44,8 @@ ARaymarchedPhysicsShape* FRaymarchedShapeProperties::CreateShape(UMaterial* Mate
 	CreateParameters(Material, idx);
 
 	HookupMarching(Material, shape, idx);
-	HookupShading(Material, shape, idx);
-	HookupLighting(Material, shape, idx);
+	HookupShading(Material, shape, lightingData, idx);
+	HookupLighting(Material, shape, lightingData, idx);
 
 	return physicsShape;
 }
@@ -155,7 +156,7 @@ void FRaymarchedShapeProperties::HookupMarching(UMaterial* Material, const FShap
 	ExpressionMarch->MaterialExpressionEditorY = editorOffset;
 #endif
 }
-void FRaymarchedShapeProperties::HookupShading(UMaterial* Material, const FShapeShaderProperties shape, const int idx)
+void FRaymarchedShapeProperties::HookupShading(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx)
 {
 	//Creating the shaders
 	ExpressionShading = NewObject<UCustomFileMaterialExpression>(Material);
@@ -179,8 +180,9 @@ void FRaymarchedShapeProperties::HookupShading(UMaterial* Material, const FShape
 	CustomInput.InputName = TEXT("steps");
 	ExpressionShading->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("lightOrigin");
+	CustomInput.Input.Expression = lightingData.LightOrigin;
 	ExpressionShading->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("cubeOrigin");
+	CustomInput.InputName = TEXT("cubeOrig");
 	CustomInput.Input.Expression = ObjectOriginParam;
 	ExpressionShading->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("cubeRad");
@@ -196,29 +198,30 @@ void FRaymarchedShapeProperties::HookupShading(UMaterial* Material, const FShape
 
 	FName compareInputStr = "";
 	FName compareOutputStr = "";
-	auto inputLambda = [compareInputStr](FCustomInput x) { return x.InputName == compareInputStr; };
-	auto outputLambda = [compareOutputStr](FCustomOutput x) { return x.OutputName == compareOutputStr; };
+	auto inputLambda = [&compareInputStr](FCustomInput x) { return x.InputName == compareInputStr; };
+	auto outputLambda = [&compareOutputStr](FCustomOutput x) { return x.OutputName == compareOutputStr; };
 
+	//We add 1 to the index due to us searching in only the additional outputs, so we need to take into account the original 0th element (the original output)
 	compareInputStr = "lastPos";
 	ExpressionShading->Inputs.FindByPredicate([compareInputStr](FCustomInput x) { return x.InputName == compareInputStr; })->Input.Expression = ExpressionMarch;
-	compareInputStr = "dist";
-	compareOutputStr = "distance";
-	ExpressionShading->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda), ExpressionMarch);
+	compareInputStr = "distance";
+	compareOutputStr = "dist";
+	ExpressionShading->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1, ExpressionMarch);
 	compareInputStr = "lastDist";
 	compareOutputStr = "lastDist";
-	ExpressionShading->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda), ExpressionMarch);
+	ExpressionShading->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1, ExpressionMarch);
 	compareInputStr = "steps";
 	compareOutputStr = "steps";
-	ExpressionShading->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda), ExpressionMarch);
+	ExpressionShading->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1, ExpressionMarch);
 
 #if WITH_EDITOR
 	float editorOffset = TotalEditorHeight * idx;
 
-	ExpressionShading->MaterialExpressionEditorX = -400;
+	ExpressionShading->MaterialExpressionEditorX = 0;
 	ExpressionShading->MaterialExpressionEditorY = editorOffset;
 #endif
 }
-void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShapeShaderProperties shape, const int idx)
+void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx)
 {
 	ExpressionLighting = NewObject<UCustomFileMaterialExpression>(Material);
 	ExpressionLighting->CodeFile = shape.Lighting;
@@ -247,8 +250,9 @@ void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShap
 	CustomInput.InputName = TEXT("rayDirection");
 	ExpressionLighting->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("lightOrigin");
+	CustomInput.Input.Expression = lightingData.LightOrigin;
 	ExpressionLighting->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("cubeOrigin");
+	CustomInput.InputName = TEXT("cubeOrig");
 	CustomInput.Input.Expression = ObjectOriginParam;
 	ExpressionLighting->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("cubeRad");
@@ -258,6 +262,7 @@ void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShap
 	CustomInput.Input.Expression = ShinynessParam;
 	ExpressionLighting->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("fogMultiplier");
+	CustomInput.Input.Expression = lightingData.FogMultiplier;
 	ExpressionLighting->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("diffuseColor");
 	CustomInput.Input.Expression = DiffuseColorParam;
@@ -266,8 +271,10 @@ void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShap
 	CustomInput.Input.Expression = SpecularColorParam;
 	ExpressionLighting->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("lightColor");
+	CustomInput.Input.Expression = lightingData.LightColor;
 	ExpressionLighting->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("ambientColor");
+	CustomInput.Input.Expression = lightingData.AmbientColor;
 	ExpressionLighting->Inputs.Add(CustomInput);
 	//Outputs
 	ExpressionLighting->OutputType = ECustomMaterialOutputType::CMOT_Float4;
@@ -283,26 +290,35 @@ void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShap
 
 	FName compareInputStr = "";
 	FName compareOutputStr = "";
-	auto inputLambda = [compareInputStr](FCustomInput x) { return x.InputName == compareInputStr; };
-	auto outputLambda = [compareOutputStr](FCustomOutput x) { return x.OutputName == compareOutputStr; };
+	auto inputLambda = [&compareInputStr](FCustomInput x) { return x.InputName == compareInputStr; };
+	auto outputLambda = [&compareOutputStr](FCustomOutput x) { return x.OutputName == compareOutputStr; };
 
+	//We add 1 to the index due to us searching in only the additional outputs, so we need to take into account the original 0th element (the original output)
 	compareInputStr = "lastPos";
 	ExpressionLighting->Inputs.FindByPredicate([compareInputStr](FCustomInput x) { return x.InputName == compareInputStr; })->Input.Expression = ExpressionMarch;
-	compareInputStr = "dist";
-	compareOutputStr = "distance";
-	ExpressionLighting->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda), ExpressionMarch);
+	compareInputStr = "distance";
+	compareOutputStr = "dist";
+	ExpressionLighting->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1, ExpressionMarch);
 	compareInputStr = "lastDist";
 	compareOutputStr = "lastDist";
-	ExpressionLighting->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda), ExpressionMarch);
+	ExpressionLighting->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1, ExpressionMarch);
 	compareInputStr = "steps";
 	compareOutputStr = "steps";
-	ExpressionLighting->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda), ExpressionMarch);
+	ExpressionLighting->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1, ExpressionMarch);
+
+	compareInputStr = "normal";
+	compareOutputStr = "normal";
+	ExpressionShading->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionLighting->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1, ExpressionLighting);	
+	compareInputStr = "lightDir";
+	compareOutputStr = "lightDir";
+	ExpressionShading->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionLighting->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1, ExpressionLighting);
+
 
 #if WITH_EDITOR
 	float editorOffset = TotalEditorHeight * idx;
 	float localTotalOffset = ExpressionShading->GetHeight() + 150.0f;
 
-	ExpressionLighting->MaterialExpressionEditorX = -400;
+	ExpressionLighting->MaterialExpressionEditorX = 0;
 	ExpressionLighting->MaterialExpressionEditorY = localTotalOffset + editorOffset;
 #endif
 }
