@@ -110,7 +110,7 @@ void ARaymarchMaterialBuilder::PopulateMaterial()
 		if (shape != nullptr)
 		{
 			//Create it
-			RaymarchedPhysicsShapes.Add(properties.CreateShape(Material, *shape, LightingData, i));
+			RaymarchedPhysicsShapes.Add(properties.CreateShape(this, Material, *shape, LightingData, i));
 		}
 		else 
 		{
@@ -138,9 +138,10 @@ void ARaymarchMaterialBuilder::UpdateMaterial()
 {
 	//Go over all the shapes and update the material accordingly
 	//So that visuals follow the physics
-	for (int i = 0; i < RaymarchedPhysicsShapes.Num(); i++)
+	for (int i = 0; i < RaymarchedShapesProperties.Num(); i++)
 	{
-
+		FRaymarchedShapeProperties& properties = RaymarchedShapesProperties[i];
+		properties.UpdateShape(DynamicMaterial, RaymarchedPhysicsShapes[i], i);
 	}
 }
 

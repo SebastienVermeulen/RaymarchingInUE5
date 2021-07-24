@@ -50,6 +50,7 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName = "Shape Properties", Category = "Shapes", meta = (AllowPrivateAccess = true))
 	TArray<FShapeShaderProperties> ShapeShaderProperties;
 	//Object during runtime
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, DisplayName = "Physics Shapes", Category = "Shapes", meta = (AllowPrivateAccess = true))
 	TArray<ARaymarchedPhysicsShape*> RaymarchedPhysicsShapes;
 
 	FString MaterialBaseName = "M_Material";

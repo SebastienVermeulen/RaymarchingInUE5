@@ -1,11 +1,15 @@
 #include "RaymarchedShapeProperties.h"
 #include "../CustomExpression/CustomFileMaterialExpression.h"
-#include "Materials/MaterialExpressionScalarParameter.h"
-#include "Materials/MaterialExpressionVectorParameter.h"
 #include "RaymarchedPhysicsShape.h"
-#include "Materials/MaterialExpressionNormalize.h"
-#include "Materials/MaterialExpressionCameraPositionWS.h"
 #include "RaymarchedLightingData.h"
+#include "RaymarchMaterialBuilder.h"
+
+#include "Materials/MaterialInstanceDynamic.h"
+
+#include "Materials/MaterialExpressionCameraPositionWS.h"
+#include "Materials/MaterialExpressionNormalize.h"
+#include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialExpressionScalarParameter.h"
 
 UMaterialExpressionNormalize* FRaymarchedShapeProperties::RayDir = nullptr;
 UMaterialExpressionCameraPositionWS* FRaymarchedShapeProperties::RayOrig = nullptr;
@@ -33,13 +37,15 @@ FRaymarchedShapeProperties::FRaymarchedShapeProperties()
 {	
 }
 
-ARaymarchedPhysicsShape* FRaymarchedShapeProperties::CreateShape(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx)
+ARaymarchedPhysicsShape* FRaymarchedShapeProperties::CreateShape(ARaymarchMaterialBuilder* Builder, UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx)
 {
 	//Create the physics object
-	ARaymarchedPhysicsShape* physicsShape = ARaymarchedPhysicsShape::Create(Radius);
-
-	physicsShape->SetActorRotation(StartRotation, ETeleportType::TeleportPhysics);
-	physicsShape->SetActorLocation(StartPosition, false, nullptr, ETeleportType::TeleportPhysics);
+	FActorSpawnParameters params{};
+	params.Name = TEXT("Shape_" + idx);
+	params.Owner = Builder;
+	AActor* physicsShapeActor = Builder->GetWorld()->SpawnActor(ARaymarchedPhysicsShape::StaticClass(), &StartPosition, &StartRotation, params);
+	ARaymarchedPhysicsShape* physicsShape = Cast<ARaymarchedPhysicsShape>(physicsShapeActor);
+	physicsShape->Init(Radius);
 
 	CreateParameters(Material, idx);
 
@@ -321,4 +327,10 @@ void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShap
 	ExpressionLighting->MaterialExpressionEditorX = 0;
 	ExpressionLighting->MaterialExpressionEditorY = localTotalOffset + editorOffset;
 #endif
+}
+
+void FRaymarchedShapeProperties::UpdateShape(UMaterialInstanceDynamic* Material, const ARaymarchedPhysicsShape* shape, const int idx)
+{
+	Material->SetVectorParameterValue("ObjectOrigin_" + idx, shape->GetActorLocation());
+	Material->SetVectorParameterValue("ObjectRotation_" + idx, shape->GetActorRotation().Vector());
 }

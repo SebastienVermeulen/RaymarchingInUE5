@@ -10,6 +10,8 @@ class UMaterialExpressionVectorParameter;
 class UMaterialExpressionScalarParameter;
 class UMaterialExpressionNormalize;
 class UMaterialExpressionCameraPositionWS;
+class UMaterialInstanceDynamic;
+class ARaymarchMaterialBuilder;
 
 struct FRaymarchedLightingData;
 
@@ -22,7 +24,8 @@ struct FRaymarchedShapeProperties
 public:	
 	FRaymarchedShapeProperties();
 
-	ARaymarchedPhysicsShape* CreateShape(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx);
+	ARaymarchedPhysicsShape* CreateShape(ARaymarchMaterialBuilder* Builder, UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx);
+	void UpdateShape(UMaterialInstanceDynamic* Material, const ARaymarchedPhysicsShape* shape, const int idx);
 
 protected:
 

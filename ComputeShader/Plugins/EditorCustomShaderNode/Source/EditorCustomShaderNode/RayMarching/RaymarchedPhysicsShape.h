@@ -13,12 +13,12 @@ class ARaymarchedPhysicsShape : public AActor
 	
 #pragma region Functions
 public:	
-	static ARaymarchedPhysicsShape* Create(float radius);
-
-protected:
-	ARaymarchedPhysicsShape();
+	ARaymarchedPhysicsShape(const FObjectInitializer& ObjectInitializer);
 	void Init(float radius);
 
+	virtual void Tick(float DeltaTime) override;
+
+protected:
 	virtual void BeginPlay() override;
 
 private:
