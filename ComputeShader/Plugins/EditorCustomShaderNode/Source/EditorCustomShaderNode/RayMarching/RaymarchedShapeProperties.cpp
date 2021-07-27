@@ -66,7 +66,7 @@ void FRaymarchedShapeProperties::CreateParameters(UMaterial* Material, const int
 	ObjectRotationParam = NewObject<UMaterialExpressionVectorParameter>(Material);
 	Material->Expressions.Add(ObjectRotationParam);
 	ObjectRotationParam->ParameterName = TEXT("ObjectRotation_" + idx);
-	ObjectRotationParam->DefaultValue = StartRotation.Vector();
+	ObjectRotationParam->DefaultValue = FVector(StartRotation.Roll, StartRotation.Pitch, StartRotation.Yaw);
 	ObjectRadiusParam = NewObject<UMaterialExpressionScalarParameter>(Material);
 	Material->Expressions.Add(ObjectRadiusParam);
 	ObjectRadiusParam->ParameterName = TEXT("ObjectRadius_" + idx);
@@ -194,6 +194,9 @@ void FRaymarchedShapeProperties::HookupShading(UMaterial* Material, const FShape
 	CustomInput.InputName = TEXT("cubeRad");
 	CustomInput.Input.Expression = ObjectRadiusParam;
 	ExpressionShading->Inputs.Add(CustomInput);
+	CustomInput.InputName = TEXT("cubeRotation");
+	CustomInput.Input.Expression = ObjectRotationParam;
+	ExpressionShading->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("normal");
 	ExpressionShading->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("lightDir");
@@ -264,6 +267,9 @@ void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShap
 	CustomInput.InputName = TEXT("cubeRad");
 	CustomInput.Input.Expression = ObjectRadiusParam;
 	ExpressionLighting->Inputs.Add(CustomInput);
+	CustomInput.InputName = TEXT("cubeRotation");
+	CustomInput.Input.Expression = ObjectRotationParam;
+	ExpressionLighting->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("shinyness");
 	CustomInput.Input.Expression = ShinynessParam;
 	ExpressionLighting->Inputs.Add(CustomInput);
@@ -332,5 +338,7 @@ void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShap
 void FRaymarchedShapeProperties::UpdateShape(UMaterialInstanceDynamic* Material, const ARaymarchedPhysicsShape* shape, const int idx)
 {
 	Material->SetVectorParameterValue("ObjectOrigin_" + idx, shape->GetActorLocation());
-	Material->SetVectorParameterValue("ObjectRotation_" + idx, shape->GetActorRotation().Vector());
+	FRotator rot = shape->GetActorRotation();
+	FVector radianAngles = FMath::DegreesToRadians(rot.Euler());
+	Material->SetVectorParameterValue("ObjectRotation_" + idx, radianAngles);
 }

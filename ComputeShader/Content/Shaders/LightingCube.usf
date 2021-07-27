@@ -1,33 +1,59 @@
 const int MAX_STEPS = 500;
 const float MIN_DIST = 0.01;
-const float MAX_DIST = 10000.0;
+const float MAX_DIST = 100000.0;
 
 const float3 gDefaultCol = float3(0.0,0.0,0.0);
 const float gShadowSoftness = 15.0;
 
 struct Object
 {
-    float GetDist(const in float3 newPos, const in float cubeRad)
+    // Rotation matrix
+    float3x3 Rotation(const in float3 rotation) 
     {
-        return length(max(abs(newPos) - cubeRad, 0.0));
-    } 
-    float3 GetNormal(const in float3 newPos, const in float3 cubeOrig, const in float cubeRad)
+        float cx = cos(rotation.x);
+        float sx = sin(rotation.x);
+        float cy = cos(rotation.y);
+        float sy = sin(rotation.y);
+        float cz = cos(rotation.z);
+        float sz = sin(rotation.z);
+        return mul(
+            float3x3(
+                float3(cz, -sz, 0),
+                float3(sz, cz, 0),
+                float3(0, 0, 1)),
+            mul(
+            float3x3(
+                float3(cy, 0, -sy),
+                float3(0, 1, 0),
+                float3(sy, 0, cy)),
+            float3x3(
+                float3(1, 0, 0),
+                float3(0, cx, sx),
+                float3(0, -sx, cx))));
+    }
+
+    float GetDist(const in float3 pos, const in float cubeRad, const in float3x3 rot)
+    {
+        float3 potition = mul(pos, rot);
+        return min(MAX_DIST, length(max(abs(potition) - cubeRad, 0.0)));
+    }
+    float3 GetNormal(const in float3 newPos, const in float3 cubeOrig, const in float cubeRad, const in float3x3 rot)
     {
         float3 pos = newPos;// - cubeOrig;
 
-        float dist = GetDist(pos, cubeRad);
+        float dist = GetDist(pos, cubeRad, rot);
         float2 add = float2(0.01,0.0);
         
         float3 normal = 
             float3(
-            GetDist(pos+add.xyy, cubeRad),
-            GetDist(pos+add.yxy, cubeRad),
-            GetDist(pos+add.yyx, cubeRad))
+            GetDist(pos+add.xyy, cubeRad, rot),
+            GetDist(pos+add.yxy, cubeRad, rot),
+            GetDist(pos+add.yyx, cubeRad, rot))
                 -
             float3(
-            GetDist(pos-add.xyy, cubeRad),
-            GetDist(pos-add.yxy, cubeRad),
-            GetDist(pos-add.yyx, cubeRad));
+            GetDist(pos-add.xyy, cubeRad, rot),
+            GetDist(pos-add.yxy, cubeRad, rot),
+            GetDist(pos-add.yyx, cubeRad, rot));
         return normalize(normal);
     }
 };
@@ -42,7 +68,8 @@ struct MarchInfo
 
 struct Marcher
 {
-    float CalcSoftShadow(const in float3 rayOrigin, const in float3 rayDirection, const in float3 cubeOrig, const in float cubeRad)
+    float CalcSoftShadow(const in float3 rayOrigin, const in float3 rayDirection, const in float3 cubeOrig, const in float cubeRad, 
+        const float3 cubeRotation, const in float3x3 rot)
     {
         float rayLength = 0.0;
         const float maxShadowRenderDist = 20.0;
@@ -57,7 +84,7 @@ struct Marcher
                 break;
             }
 
-            float newDist = obj.GetDist(rayOrigin + rayLength * rayDirection - cubeOrig, cubeRad);
+            float newDist = obj.GetDist(rayOrigin + rayLength * rayDirection - cubeOrig, cubeRad, rot);
             if(newDist <= MIN_DIST)
             {
                 return 0.0;
@@ -80,10 +107,12 @@ struct Marcher
     }
     float4 GetLighting(const in float3 viewPos, const in float3 viewDir, const in MarchInfo march, 
         const in float3 lightOrigin, out float3 lightDir, const in float3 cubeOrig, const in float3  diffuseColor, const in float3 specularColor, 
-        const in float3 lightColor, const in float3 ambientColor, out float3 normal, const in float cubeRad, const in float shinyness, const in float fogMultiplier)
+        const in float3 lightColor, const in float3 ambientColor, out float3 normal, const in float cubeRad, const in float shinyness, 
+        const in float fogMultiplier, const in float3 cubeRotation)
     {   
         Object obj;
-        normal = obj.GetNormal(march.lastPos, cubeOrig, cubeRad);
+        float3x3 rotMatrix = obj.Rotation(cubeRotation);
+        normal = obj.GetNormal(march.lastPos, cubeOrig, cubeRad, rotMatrix);
 
         //Lighting
         lightDir = lightOrigin - march.lastPos;
@@ -126,4 +155,5 @@ march.dist = distance;
 march.lastDist = lastDist;
 march.steps = steps;
 
-return marcher.GetLighting(rayPos, -rayDirection, march, lightOrigin, lightDir, cubeOrig, diffuseColor, specularColor, lightColor, ambientColor, normal, cubeRad, shinyness, fogMultiplier);
+return marcher.GetLighting(rayPos, -rayDirection, march, lightOrigin, lightDir, cubeOrig, diffuseColor, specularColor, lightColor, ambientColor, 
+    normal, cubeRad, shinyness, fogMultiplier, cubeRotation);

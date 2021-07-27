@@ -11,6 +11,7 @@ class ARaymarchedPhysicsShape;
 class UMaterialExpressionLinearInterpolate;
 class UPostProcessComponent;
 class UMaterialInstanceDynamic;
+class UMaterialInstanceConstant;
 struct FRaymarchedLightingProperties;
 
 UCLASS()
@@ -34,6 +35,7 @@ private:
 	UMaterialExpressionLinearInterpolate* SetupStaticVariables();
 	void SetupConnectingVariables(UMaterialExpressionLinearInterpolate* lerp);
 
+	void CreateMaterialInstance();
 	void UpdateDynamicMaterial();
 
 #pragma endregion
@@ -54,9 +56,11 @@ private:
 	TArray<ARaymarchedPhysicsShape*> RaymarchedPhysicsShapes;
 
 	FString MaterialBaseName = "M_Material";
+	FString MaterialInstanceBaseName = "MI_Material";
 	FString PackageName = "/Game/Materials/";
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, DisplayName = "Dynamic Material", Category = "Material", meta = (AllowPrivateAccess = true))
 	UMaterial* Material;
+	UMaterialInstanceConstant* MaterialInstance;
 	UMaterialInstanceDynamic* DynamicMaterial;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, DisplayName = "Dynamic Material", Category = "Material", meta = (AllowPrivateAccess = true))
 	UPostProcessComponent* PostProcessing;

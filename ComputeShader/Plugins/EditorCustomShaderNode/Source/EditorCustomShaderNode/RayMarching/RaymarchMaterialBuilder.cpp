@@ -5,12 +5,15 @@
 #include "RaymarchedLightingProperties.h"
 #include "../CustomExpression/CustomFileMaterialExpression.h"
 
-#include "Factories/MaterialFactoryNew.h"
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "Factories/MaterialFactoryNew.h"
+#include "Factories/MaterialInstanceConstantFactoryNew.h"
+
 #include "Templates/SharedPointer.h" 
 #include "Components/PostProcessComponent.h"
 
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/MaterialInstanceConstant.h"
 
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
@@ -48,8 +51,9 @@ void ARaymarchMaterialBuilder::BeginPlay()
 	{
 		CreateMaterial();
 	}
-	PopulateMaterial();
 
+	PopulateMaterial();
+	CreateMaterialInstance();
 	UpdateDynamicMaterial();
 }
 void ARaymarchMaterialBuilder::Tick(float DeltaTime)
@@ -250,6 +254,26 @@ void ARaymarchMaterialBuilder::SetupConnectingVariables(UMaterialExpressionLinea
 	}
 }
 
+void ARaymarchMaterialBuilder::CreateMaterialInstance()
+{
+	FString tempPackageName = PackageName + MaterialInstanceBaseName;
+	UPackage* Package = CreatePackage(*tempPackageName);
+
+	// Create an unreal material asset
+	UMaterialInstanceConstantFactoryNew* MaterialFactory = NewObject<UMaterialInstanceConstantFactoryNew>();
+	MaterialInstance = (UMaterialInstanceConstant*)MaterialFactory->FactoryCreateNew(
+		UMaterialInstanceConstant::StaticClass(),
+		Package,
+		*MaterialInstanceBaseName,
+		RF_Standalone | RF_Public,
+		NULL,
+		GWarn);
+	MaterialInstance->Parent = Material;
+
+	FAssetRegistryModule::AssetCreated(MaterialInstance);
+	Package->FullyLoad();
+	Package->MarkPackageDirty();
+}
 void ARaymarchMaterialBuilder::UpdateDynamicMaterial()
 {
 	DynamicMaterial = UMaterialInstanceDynamic::Create(Material, GetWorld());

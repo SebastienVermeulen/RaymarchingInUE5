@@ -1,5 +1,5 @@
 const int MAX_STEPS = 500;
-const float MAX_DIST = 1000.0;
+const float MAX_DIST = 100000.0;
 const float MIN_DIST = 0.001;
 
 const float3 gDefaultCol = float3(0.0,0.0,0.0);
@@ -9,16 +9,35 @@ const float gFogMultiplier = 1.5;
 
 struct Object
 {
-    float2x2 GetRot(const in float angle)
+    // Rotation matrix
+    float3x3 Rotation(const in float3 rotation) 
     {
-        float s = sin(angle);
-        float c = cos(angle);
-        return float2x2(c, -s, s, c);
+        float cx = cos(rotation.x);
+        float sx = sin(rotation.x);
+        float cy = cos(rotation.y);
+        float sy = sin(rotation.y);
+        float cz = cos(rotation.z);
+        float sz = sin(rotation.z);
+        return mul(
+            float3x3(
+                float3(cz, -sz, 0),
+                float3(sz, cz, 0),
+                float3(0, 0, 1)),
+            mul(
+            float3x3(
+                float3(cy, 0, -sy),
+                float3(0, 1, 0),
+                float3(sy, 0, cy)),
+            float3x3(
+                float3(1, 0, 0),
+                float3(0, cx, sx),
+                float3(0, -sx, cx))));
     }
 
-    float GetDist(const in float3 newPos, const in float3 cubeOrig, const in float cubeRad)
+    float GetDist(const in float3 newPos, const in float3 cubeOrig, const in float cubeRad, const in float3x3 rot)
     {
-        return min(MAX_DIST, length(max(abs(newPos - cubeOrig) - cubeRad, 0.0)));
+        float3 potition = mul((newPos - cubeOrig), rot);
+        return min(MAX_DIST, length(max(abs(potition) - cubeRad, 0.0)));
     }
 };
 
@@ -38,17 +57,15 @@ struct Marcher
     {
         float d = 0.0;
         float lighting = 0.0;
+
         Object obj;
+        float3x3 rotMatrix = obj.Rotation(cubeRotation);
 
         for(march.steps = 0; march.steps < MAX_STEPS; march.steps++)
         {
             march.lastPos = rayOrigin + rayDirection * d;
 
-            march.lastPos.xy = mul(march.lastPos.xy, obj.GetRot(cubeRotation.z));
-            march.lastPos.xz = mul(march.lastPos.xz, obj.GetRot(cubeRotation.y));
-            march.lastPos.yz = mul(march.lastPos.yz, obj.GetRot(cubeRotation.x));
-
-            march.lastDist = obj.GetDist(march.lastPos, cubeOrig, cubeRad);
+            march.lastDist = obj.GetDist(march.lastPos, cubeOrig, cubeRad, rotMatrix);
 
             if(MIN_DIST > abs(march.lastDist)) 
             {

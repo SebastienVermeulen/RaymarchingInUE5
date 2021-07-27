@@ -1,4 +1,5 @@
 const int MAX_STEPS = 500;
+const float MAX_DIST = 100000.0;
 const float MIN_DIST = 0.01;
 
 const float3 gDefaultCol = float3(0.0,0.0,0.0);
@@ -6,27 +7,53 @@ const float gShadowSoftness = 15.0;
 
 struct Object
 {
-    float GetDist(const in float3 newPos, const in float cubeRad)
+    // Rotation matrix
+    float3x3 Rotation(const in float3 rotation) 
     {
-        return length(max(abs(newPos) - cubeRad, 0.0));
-    } 
-    float3 GetNormal(const in float3 newPos, const in float3 cubeOrig, const in float cubeRad)
+        float cx = cos(rotation.x);
+        float sx = sin(rotation.x);
+        float cy = cos(rotation.y);
+        float sy = sin(rotation.y);
+        float cz = cos(rotation.z);
+        float sz = sin(rotation.z);
+        return mul(
+            float3x3(
+                float3(cz, -sz, 0),
+                float3(sz, cz, 0),
+                float3(0, 0, 1)),
+            mul(
+            float3x3(
+                float3(cy, 0, -sy),
+                float3(0, 1, 0),
+                float3(sy, 0, cy)),
+            float3x3(
+                float3(1, 0, 0),
+                float3(0, cx, sx),
+                float3(0, -sx, cx))));
+    }
+
+    float GetDist(const in float3 pos, const in float cubeRad, const in float3x3 rot)
+    {
+        float3 potition = mul(pos, rot);
+        return min(MAX_DIST, length(max(abs(potition) - cubeRad, 0.0)));
+    }
+    float3 GetNormal(const in float3 newPos, const in float3 cubeOrig, const in float cubeRad, const in float3x3 rot)
     {
         float3 pos = newPos;// - cubeOrig;
 
-        float dist = GetDist(pos, cubeRad);
+        float dist = GetDist(pos, cubeRad, rot);
         float2 add = float2(0.01,0.0);
         
         float3 normal = 
             float3(
-            GetDist(pos+add.xyy, cubeRad),
-            GetDist(pos+add.yxy, cubeRad),
-            GetDist(pos+add.yyx, cubeRad))
+            GetDist(pos+add.xyy, cubeRad, rot),
+            GetDist(pos+add.yxy, cubeRad, rot),
+            GetDist(pos+add.yyx, cubeRad, rot))
                 -
             float3(
-            GetDist(pos-add.xyy, cubeRad),
-            GetDist(pos-add.yxy, cubeRad),
-            GetDist(pos-add.yyx, cubeRad));
+            GetDist(pos-add.xyy, cubeRad, rot),
+            GetDist(pos-add.yxy, cubeRad, rot),
+            GetDist(pos-add.yyx, cubeRad, rot));
         return normalize(normal);
     }
 };
@@ -41,12 +68,13 @@ struct MarchInfo
 
 struct Marcher
 {
-    float CalcSoftShadow(const in float3 rayOrigin, const in float3 rayDirection, const in float3 cubeOrig, const in float cubeRad)
+    float CalcSoftShadow(const in float3 rayOrigin, const in float3 rayDirection, const in float3 cubeOrig, const in float cubeRad, const float3 cubeRotation)
     {
         float rayLength = 0.0;
         const float maxShadowRenderDist = 20.0;
 
         Object obj;
+        float3x3 rotMatrix = obj.Rotation(cubeRotation);
 
         float shadow = 1.0;
         for(int steps = 0; steps < MAX_STEPS; steps++)
@@ -56,7 +84,7 @@ struct Marcher
                 break;
             }
 
-            float newDist = obj.GetDist(rayOrigin + rayLength * rayDirection - cubeOrig, cubeRad);
+            float newDist = obj.GetDist(rayOrigin + rayLength * rayDirection - cubeOrig, cubeRad, rotMatrix);
             if(newDist <= MIN_DIST)
             {
                 return 0.0;
@@ -68,12 +96,13 @@ struct Marcher
 
         return clamp(shadow,0.0,1.0);
     }
-    float GetLighting(const in MarchInfo march, const in float3 lightOrigin, const in float3 lightDir, const in float3 cubeOrig, const in float cubeRad, const in float3 normal)
+    float GetLighting(const in MarchInfo march, const in float3 lightOrigin, const in float3 lightDir, const in float3 cubeOrig, 
+        const in float cubeRad, const in float3 normal, const in float3 cubeRotation)
     {   
         //Check dist  
         if(MIN_DIST >= march.lastDist)
         {
-            return CalcSoftShadow(march.lastPos + normal * MIN_DIST * 25., lightDir, cubeOrig, cubeRad);
+            return CalcSoftShadow(march.lastPos + normal * MIN_DIST * 25., lightDir, cubeOrig, cubeRad, cubeRotation);
         }
         return 1.0;
     }
@@ -87,4 +116,4 @@ march.dist = distance;
 march.lastDist = lastDist;
 march.steps = steps;
 
-return marcher.GetLighting(march, lightOrigin, lightDir, cubeOrig, cubeRad, normal);
+return marcher.GetLighting(march, lightOrigin, lightDir, cubeOrig, cubeRad, normal, cubeRotation);

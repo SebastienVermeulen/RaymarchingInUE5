@@ -34,5 +34,5 @@ void ARaymarchedPhysicsShape::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	DrawDebugBox(GetWorld(), GetActorLocation(), CollisionMesh->GetScaledBoxExtent(), FColor::Purple, false, -1, 0, 10);
+	DrawDebugBox(GetWorld(), GetActorLocation(), CollisionMesh->GetScaledBoxExtent(), GetActorRotation().Quaternion(), FColor::Purple, false, -1, 0, 10);
 }
