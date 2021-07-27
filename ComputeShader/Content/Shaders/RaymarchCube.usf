@@ -55,15 +55,12 @@ struct Marcher
         const in float3 rayDirection, const in float3 cubeOrig, 
         const in float3 cubeRotation, const in float cubeRad)
     {
-        float d = 0.0;
-        float lighting = 0.0;
-
         Object obj;
         float3x3 rotMatrix = obj.Rotation(cubeRotation);
 
         for(march.steps = 0; march.steps < MAX_STEPS; march.steps++)
         {
-            march.lastPos = rayOrigin + rayDirection * d;
+            march.lastPos = rayOrigin + rayDirection * march.dist;
 
             march.lastDist = obj.GetDist(march.lastPos, cubeOrig, cubeRad, rotMatrix);
 
@@ -71,15 +68,13 @@ struct Marcher
             {
                 break;
             }
-            if(MAX_DIST < d)
+            if(MAX_DIST < march.dist)
             {
                 break;
             }
 
-            d += march.lastDist;
+            march.dist += march.lastDist;
         }
-
-        march.dist = d;
     }
 };
 

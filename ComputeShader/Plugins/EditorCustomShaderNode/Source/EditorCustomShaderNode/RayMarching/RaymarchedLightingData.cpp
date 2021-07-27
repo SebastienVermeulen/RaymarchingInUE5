@@ -21,6 +21,10 @@ void FRaymarchedLightingData::SetupLighting(UMaterial* Material, FRaymarchedLigh
 	Material->Expressions.Add(FogMultiplier);
 	FogMultiplier->ParameterName = TEXT("FogMultiplier");
 	FogMultiplier->DefaultValue = properties.FogMultiplier;
+	LightStrength = NewObject<UMaterialExpressionScalarParameter>(Material);
+	Material->Expressions.Add(LightStrength);
+	LightStrength->ParameterName = TEXT("LightStrength");
+	LightStrength->DefaultValue = properties.LightStrength;
 
 #if WITH_EDITOR
 	float TotalCurrentHeight = 0.0f;
@@ -36,5 +40,9 @@ void FRaymarchedLightingData::SetupLighting(UMaterial* Material, FRaymarchedLigh
 	TotalCurrentHeight += AmbientColor->GetHeight() + 50.0f;
 	FogMultiplier->MaterialExpressionEditorX = -1700.0f;
 	FogMultiplier->MaterialExpressionEditorY = 100.0f;
+	TotalCurrentHeight = 0.0f;
+	TotalCurrentHeight += FogMultiplier->GetHeight();
+	LightStrength->MaterialExpressionEditorX = -1700.0f;
+	LightStrength->MaterialExpressionEditorY = 100.0f + TotalCurrentHeight;
 #endif
 }

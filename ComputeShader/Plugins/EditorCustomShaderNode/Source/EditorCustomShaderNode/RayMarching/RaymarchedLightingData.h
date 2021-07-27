@@ -28,6 +28,7 @@ public:
 	UMaterialExpressionVectorParameter* LightColor;
 	UMaterialExpressionVectorParameter* AmbientColor;
 	UMaterialExpressionScalarParameter* FogMultiplier;
+	UMaterialExpressionScalarParameter* LightStrength;
 
 protected:
 

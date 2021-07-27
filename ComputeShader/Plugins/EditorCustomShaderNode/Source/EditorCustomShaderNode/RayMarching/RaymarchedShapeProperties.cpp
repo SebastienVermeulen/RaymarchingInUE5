@@ -179,12 +179,6 @@ void FRaymarchedShapeProperties::HookupShading(UMaterial* Material, const FShape
 	ExpressionShading->Inputs.Empty();
 	CustomInput.InputName = TEXT("lastPos");
 	ExpressionShading->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("distance");
-	ExpressionShading->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("lastDist");
-	ExpressionShading->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("steps");
-	ExpressionShading->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("lightOrigin");
 	CustomInput.Input.Expression = lightingData.LightOrigin;
 	ExpressionShading->Inputs.Add(CustomInput);
@@ -213,15 +207,6 @@ void FRaymarchedShapeProperties::HookupShading(UMaterial* Material, const FShape
 	//We add 1 to the index due to us searching in only the additional outputs, so we need to take into account the original 0th element (the original output)
 	compareInputStr = "lastPos";
 	ExpressionShading->Inputs.FindByPredicate([compareInputStr](FCustomInput x) { return x.InputName == compareInputStr; })->Input.Expression = ExpressionMarch;
-	compareInputStr = "distance";
-	compareOutputStr = "dist";
-	ExpressionShading->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1, ExpressionMarch);
-	compareInputStr = "lastDist";
-	compareOutputStr = "lastDist";
-	ExpressionShading->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1, ExpressionMarch);
-	compareInputStr = "steps";
-	compareOutputStr = "steps";
-	ExpressionShading->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1, ExpressionMarch);
 
 #if WITH_EDITOR
 	float editorOffset = TotalEditorHeight * idx;
@@ -260,6 +245,9 @@ void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShap
 	ExpressionLighting->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("lightOrigin");
 	CustomInput.Input.Expression = lightingData.LightOrigin;
+	ExpressionLighting->Inputs.Add(CustomInput);
+	CustomInput.InputName = TEXT("lightStrength");
+	CustomInput.Input.Expression = lightingData.LightStrength;
 	ExpressionLighting->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("cubeOrig");
 	CustomInput.Input.Expression = ObjectOriginParam;

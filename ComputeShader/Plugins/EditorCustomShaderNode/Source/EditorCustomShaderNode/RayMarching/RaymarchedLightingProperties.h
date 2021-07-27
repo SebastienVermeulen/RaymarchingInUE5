@@ -10,6 +10,7 @@ struct FRaymarchedLightingProperties
 	
 #pragma region Functions
 public:	
+	FRaymarchedLightingProperties();
 
 protected:
 
@@ -27,6 +28,8 @@ public:
 	FColor AmbientColor;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float FogMultiplier;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float LightStrength;
 
 protected:
 
