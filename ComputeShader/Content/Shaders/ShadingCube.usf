@@ -1,9 +1,9 @@
-const int MAX_STEPS = 500;
+const int MAX_STEPS = 30;
 const float MAX_DIST = 100000.0;
 const float MIN_DIST = 0.01;
 
 const float3 gDefaultCol = float3(0.0,0.0,0.0);
-const float gShadowSoftness = 15.0;
+const float gShadowSoftness = 4.0;
 
 struct Object
 {
@@ -55,28 +55,23 @@ struct Marcher
         float3x3 rotMatrix = obj.Rotation(cubeRotation);
 
         MarchInfo march;
+        march.dist = MIN_DIST;
+        march.lastDist = 0.0;
 
-        float lightDistance;
+        float lightDistance = length(lightPos - rayOrigin);
         float shadow = 1.0;
-        for(int steps = 0; steps < MAX_STEPS; steps++)
+        for (; march.steps < MAX_STEPS; march.steps++)
         {
-            march.lastPos = rayOrigin + march.dist * rayDirection;
-            
-            lightDistance = length(lightPos - march.lastPos);
-            march.lastDist = min(obj.GetDist(march.lastPos, cubeOrig, cubeRad, rotMatrix), lightDistance);
-
-            if(MIN_DIST > abs(march.lastDist)) 
+            if(march.dist > lightDistance)
             {
-                if(MIN_DIST > abs(lightDistance))
-                {
-                    break;
-                }
-                shadow = 0.0;
                 break;
             }
-            if(MAX_DIST < march.dist)
+
+            march.lastDist = obj.GetDist(rayOrigin + march.dist * rayDirection, cubeOrig, cubeRad, rotMatrix);
+
+            if(MIN_DIST > march.lastDist)
             {
-                break;
+                return 0.0;
             }
 
             march.dist += march.lastDist;
@@ -89,4 +84,4 @@ struct Marcher
 
 //Lighting
 Marcher marcher;
-return marcher.CalcSoftShadow(lastPos + normal * 2.0, lightOrigin, lightDir, cubeOrig, cubeRad, cubeRotation);
+return marcher.CalcSoftShadow(lastPos + 3.0 * MIN_DIST * normal, lightOrigin, lightDir, cubeOrig, cubeRad, cubeRotation);

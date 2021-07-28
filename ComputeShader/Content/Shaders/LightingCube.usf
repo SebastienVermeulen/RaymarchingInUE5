@@ -37,22 +37,15 @@ struct Object
         float3 potition = mul((newPos - cubeOrig), rot);
         return min(MAX_DIST, length(max(abs(potition) - cubeRad, 0.0)));
     }
+    //Normals based on https://iquilezles.org/www/articles/normalsSDF/normalsSDF.htm
     float3 GetNormal(const in float3 newPos, const in float3 cubeOrig, const in float cubeRad, const in float3x3 rot)
     {
-        float dist = GetDist(newPos, cubeOrig, cubeRad, rot);
-        float2 add = float2(0.01,0.0);
-        
-        float3 normal = 
-            float3(
-            GetDist(newPos + add.xyy, cubeOrig, cubeRad, rot),
-            GetDist(newPos + add.yxy, cubeOrig, cubeRad, rot),
-            GetDist(newPos + add.yyx, cubeOrig, cubeRad, rot))
-                -
-            float3(
-            GetDist(newPos - add.xyy, cubeOrig, cubeRad, rot),
-            GetDist(newPos - add.yxy, cubeOrig, cubeRad, rot),
-            GetDist(newPos - add.yyx, cubeOrig, cubeRad, rot));
-        return normalize(normal);
+        float2 add = float2(1.0, -1.0) * MIN_DIST * 10.0;
+        return normalize( 
+                    add.xyy * GetDist(newPos + add.xyy, cubeOrig, cubeRad, rot).x + 
+					add.yyx * GetDist(newPos + add.yyx, cubeOrig, cubeRad, rot).x + 
+					add.yxy * GetDist(newPos + add.yxy, cubeOrig, cubeRad, rot).x + 
+					add.xxx * GetDist(newPos + add.xxx, cubeOrig, cubeRad, rot).x );
     }
 };
 
