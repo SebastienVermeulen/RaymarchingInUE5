@@ -215,13 +215,6 @@ void ARaymarchMaterialBuilder::SetupConnectingVariables(UMaterialExpressionLinea
 {
 	if (RaymarchedShapesProperties.Num() == 1)
 	{
-		UMaterialExpressionComponentMask* maskRGB = NewObject<UMaterialExpressionComponentMask>(Material);
-		Material->Expressions.Add(maskRGB);
-		maskRGB->R = 1;
-		maskRGB->G = 1;
-		maskRGB->B = 1;
-		maskRGB->A = 0;
-		maskRGB->Input.Expression = RaymarchedShapesProperties[0].ExpressionLighting;
 		UMaterialExpressionComponentMask* maskA = NewObject<UMaterialExpressionComponentMask>(Material);
 		Material->Expressions.Add(maskA);
 		maskA->R = 0;
@@ -230,23 +223,33 @@ void ARaymarchMaterialBuilder::SetupConnectingVariables(UMaterialExpressionLinea
 		maskA->A = 1;
 		maskA->Input.Expression = RaymarchedShapesProperties[0].ExpressionLighting;
 
-		UMaterialExpressionMultiply* mult = NewObject<UMaterialExpressionMultiply>(Material);
-		Material->Expressions.Add(mult);
-		mult->A.Expression = maskRGB;
-		mult->B.Expression = RaymarchedShapesProperties[0].ExpressionShading;
+		UMaterialExpressionLinearInterpolate* lerpLightingShading = NewObject<UMaterialExpressionLinearInterpolate>(Material);
+		Material->Expressions.Add(lerpLightingShading);
+		lerpLightingShading->A.Expression = RaymarchedShapesProperties[0].ExpressionLighting;
+		lerpLightingShading->B.Expression = LightingData.AmbientColor;
+		lerpLightingShading->Alpha.Expression = RaymarchedShapesProperties[0].ExpressionShading;
 
-		lerp->B.Expression = mult;
+		UMaterialExpressionComponentMask* maskRGB = NewObject<UMaterialExpressionComponentMask>(Material);
+		Material->Expressions.Add(maskRGB);
+		maskRGB->R = 1;
+		maskRGB->G = 1;
+		maskRGB->B = 1;
+		maskRGB->A = 0;
+		maskRGB->Input.Expression = lerpLightingShading;
+
+		lerp->B.Expression = maskRGB;
 		lerp->Alpha.Expression = maskA;
 
 		Material->EmissiveColor.Expression = lerp;
 
+
 #if WITH_EDITOR
-		maskRGB->MaterialExpressionEditorX = 400.0f;
+		maskRGB->MaterialExpressionEditorX = 700.0f;
 		maskRGB->MaterialExpressionEditorY = RaymarchedShapesProperties[0].ExpressionLighting->MaterialExpressionEditorY;
 		maskA->MaterialExpressionEditorX = 400.0f;
 		maskA->MaterialExpressionEditorY = maskRGB->MaterialExpressionEditorY + maskRGB->GetHeight();
-		mult->MaterialExpressionEditorX = 700.0f;
-		mult->MaterialExpressionEditorY = RaymarchedShapesProperties[0].ExpressionShading->MaterialExpressionEditorY;
+		lerpLightingShading->MaterialExpressionEditorX = 400.0f;
+		lerpLightingShading->MaterialExpressionEditorY = RaymarchedShapesProperties[0].ExpressionShading->MaterialExpressionEditorY;
 #endif
 	}
 	else if (RaymarchedPhysicsShapes.Num() > 1)
