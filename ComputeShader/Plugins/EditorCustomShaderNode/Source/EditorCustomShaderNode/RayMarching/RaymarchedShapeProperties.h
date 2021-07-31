@@ -6,12 +6,14 @@
 
 class ARaymarchedPhysicsShape;
 class UCustomFileMaterialExpression;
+class UMaterialInstanceDynamic;
+class ARaymarchMaterialBuilder;
+
 class UMaterialExpressionVectorParameter;
 class UMaterialExpressionScalarParameter;
 class UMaterialExpressionNormalize;
 class UMaterialExpressionCameraPositionWS;
-class UMaterialInstanceDynamic;
-class ARaymarchMaterialBuilder;
+class UMaterialExpressionLinearInterpolate;
 
 struct FRaymarchedLightingData;
 
@@ -24,8 +26,14 @@ struct FRaymarchedShapeProperties
 public:	
 	FRaymarchedShapeProperties();
 
-	ARaymarchedPhysicsShape* CreateShape(ARaymarchMaterialBuilder* Builder, UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx);
+	ARaymarchedPhysicsShape* CreateShape(ARaymarchMaterialBuilder* Builder, UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx, const int nrShapes);
 	void UpdateShape(UMaterialInstanceDynamic* Material, const ARaymarchedPhysicsShape* shape, const int idx);
+
+	void HookUpOtherShading(UCustomFileMaterialExpression* Shading);
+
+#if WITH_EDITOR
+	void AdjustEditorHeight(const int nrOfShapes, const float baseheight = 1200.0f, const float shadowShaderHeight = 300.0f);
+#endif
 
 protected:
 
@@ -33,8 +41,8 @@ private:
 	void CreateParameters(UMaterial* Material, const int idx);
 
 	void HookupMarching(UMaterial* Material, const FShapeShaderProperties shape, const int idx);
-	void HookupShading(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx);
-	void HookupLighting(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx);
+	void HookupShading(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx, const int nrShapes);
+	void HookupLighting(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx, const int nrShapes);
 
 #pragma endregion
 
@@ -61,15 +69,18 @@ public:
 	static UMaterialExpressionCameraPositionWS* RayOrig;
 
 	UCustomFileMaterialExpression* ExpressionMarch;
-	UCustomFileMaterialExpression* ExpressionShading;
+	TArray<UCustomFileMaterialExpression*> ExpressionShading;
 	UCustomFileMaterialExpression* ExpressionLighting;
 
+	UMaterialExpressionLinearInterpolate* FinalColorExpression;
+
 protected:
+
+private:
 #if WITH_EDITOR
 	float TotalEditorHeight;
 #endif
 
-private:
 	UMaterialExpressionVectorParameter* ObjectOriginParam;
 	UMaterialExpressionVectorParameter* ObjectRotationParam;
 	UMaterialExpressionScalarParameter* ObjectRadiusParam;

@@ -5,44 +5,44 @@
 
 void FRaymarchedLightingData::SetupLighting(UMaterial* Material, FRaymarchedLightingProperties properties)
 {
-	LightOrigin = NewObject<UMaterialExpressionVectorParameter>(Material);
-	Material->Expressions.Add(LightOrigin);
-	LightOrigin->ParameterName = TEXT("LightOrigin");
-	LightOrigin->DefaultValue = properties.LightOrigin;
-	LightColor = NewObject<UMaterialExpressionVectorParameter>(Material);
-	Material->Expressions.Add(LightColor);
-	LightColor->ParameterName = TEXT("LightColor");
-	LightColor->DefaultValue = properties.LightColor;
-	AmbientColor = NewObject<UMaterialExpressionVectorParameter>(Material);
-	Material->Expressions.Add(AmbientColor);
-	AmbientColor->ParameterName = TEXT("AmbientColor");
-	AmbientColor->DefaultValue = properties.AmbientColor;
-	FogMultiplier = NewObject<UMaterialExpressionScalarParameter>(Material);
-	Material->Expressions.Add(FogMultiplier);
-	FogMultiplier->ParameterName = TEXT("FogMultiplier");
-	FogMultiplier->DefaultValue = properties.FogMultiplier;
-	LightStrength = NewObject<UMaterialExpressionScalarParameter>(Material);
-	Material->Expressions.Add(LightStrength);
-	LightStrength->ParameterName = TEXT("LightStrength");
-	LightStrength->DefaultValue = properties.LightStrength;
+	LightOriginParam = NewObject<UMaterialExpressionVectorParameter>(Material);
+	Material->Expressions.Add(LightOriginParam);
+	LightOriginParam->ParameterName = TEXT("LightOrigin");
+	LightOriginParam->DefaultValue = properties.LightOrigin;
+	LightColorParam = NewObject<UMaterialExpressionVectorParameter>(Material);
+	Material->Expressions.Add(LightColorParam);
+	LightColorParam->ParameterName = TEXT("LightColor");
+	LightColorParam->DefaultValue = properties.LightColor;
+	AmbientColorParam = NewObject<UMaterialExpressionVectorParameter>(Material);
+	Material->Expressions.Add(AmbientColorParam);
+	AmbientColorParam->ParameterName = TEXT("AmbientColor");
+	AmbientColorParam->DefaultValue = properties.AmbientColor;
+	FogMultiplierParam = NewObject<UMaterialExpressionScalarParameter>(Material);
+	Material->Expressions.Add(FogMultiplierParam);
+	FogMultiplierParam->ParameterName = TEXT("FogMultiplier");
+	FogMultiplierParam->DefaultValue = properties.FogMultiplier;
+	LightStrengthParam = NewObject<UMaterialExpressionScalarParameter>(Material);
+	Material->Expressions.Add(LightStrengthParam);
+	LightStrengthParam->ParameterName = TEXT("LightStrength");
+	LightStrengthParam->DefaultValue = properties.LightStrength;
 
 #if WITH_EDITOR
 	float TotalCurrentHeight = 0.0f;
 
-	LightOrigin->MaterialExpressionEditorX = -1700.0f;
-	LightOrigin->MaterialExpressionEditorY = 300.0f;
-	TotalCurrentHeight += LightOrigin->GetHeight() + 50.0f;
-	LightColor->MaterialExpressionEditorX = -1700.0f;
-	LightColor->MaterialExpressionEditorY = 300.0f + TotalCurrentHeight;
-	TotalCurrentHeight += LightColor->GetHeight() + 50.0f;
-	AmbientColor->MaterialExpressionEditorX = -1700.0f;
-	AmbientColor->MaterialExpressionEditorY = 300.0f + TotalCurrentHeight;
-	TotalCurrentHeight += AmbientColor->GetHeight() + 50.0f;
-	FogMultiplier->MaterialExpressionEditorX = -1700.0f;
-	FogMultiplier->MaterialExpressionEditorY = 100.0f;
+	LightOriginParam->MaterialExpressionEditorX = -1700.0f;
+	LightOriginParam->MaterialExpressionEditorY = 300.0f;
+	TotalCurrentHeight += LightOriginParam->GetHeight() + 50.0f;
+	LightColorParam->MaterialExpressionEditorX = -1700.0f;
+	LightColorParam->MaterialExpressionEditorY = 300.0f + TotalCurrentHeight;
+	TotalCurrentHeight += LightColorParam->GetHeight() + 50.0f;
+	AmbientColorParam->MaterialExpressionEditorX = -1700.0f;
+	AmbientColorParam->MaterialExpressionEditorY = 300.0f + TotalCurrentHeight;
+	TotalCurrentHeight += AmbientColorParam->GetHeight() + 50.0f;
+	FogMultiplierParam->MaterialExpressionEditorX = -1700.0f;
+	FogMultiplierParam->MaterialExpressionEditorY = 100.0f;
 	TotalCurrentHeight = 0.0f;
-	TotalCurrentHeight += FogMultiplier->GetHeight();
-	LightStrength->MaterialExpressionEditorX = -1700.0f;
-	LightStrength->MaterialExpressionEditorY = 100.0f + TotalCurrentHeight;
+	TotalCurrentHeight += FogMultiplierParam->GetHeight();
+	LightStrengthParam->MaterialExpressionEditorX = -1700.0f;
+	LightStrengthParam->MaterialExpressionEditorY = 100.0f + TotalCurrentHeight;
 #endif
 }

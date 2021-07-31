@@ -10,6 +10,7 @@
 #include "Materials/MaterialExpressionNormalize.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
+#include "Materials/MaterialExpressionLinearInterpolate.h"
 
 UMaterialExpressionNormalize* FRaymarchedShapeProperties::RayDir = nullptr;
 UMaterialExpressionCameraPositionWS* FRaymarchedShapeProperties::RayOrig = nullptr;
@@ -22,12 +23,12 @@ FRaymarchedShapeProperties::FRaymarchedShapeProperties()
 	, DiffuseColor{}
 	, SpecularColor{}
 	, Shinyness{}
+	, ExpressionMarch{ nullptr }
+	, ExpressionShading{ }
+	, ExpressionLighting{ nullptr }
 #if WITH_EDITOR
 	, TotalEditorHeight{1500}
 #endif
-	, ExpressionMarch{ nullptr }
-	, ExpressionShading{ nullptr }
-	, ExpressionLighting{ nullptr }
 	, ObjectOriginParam{ nullptr }
 	, ObjectRotationParam{ nullptr }
 	, ObjectRadiusParam{ nullptr }
@@ -37,7 +38,7 @@ FRaymarchedShapeProperties::FRaymarchedShapeProperties()
 {	
 }
 
-ARaymarchedPhysicsShape* FRaymarchedShapeProperties::CreateShape(ARaymarchMaterialBuilder* Builder, UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx)
+ARaymarchedPhysicsShape* FRaymarchedShapeProperties::CreateShape(ARaymarchMaterialBuilder* Builder, UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx, const int nrShapes)
 {
 	//Create the physics object
 	FActorSpawnParameters params{};
@@ -50,39 +51,54 @@ ARaymarchedPhysicsShape* FRaymarchedShapeProperties::CreateShape(ARaymarchMateri
 	CreateParameters(Material, idx);
 
 	HookupMarching(Material, shape, idx);
-	HookupShading(Material, shape, lightingData, idx);
-	HookupLighting(Material, shape, lightingData, idx);
+	HookupShading(Material, shape, lightingData, idx, nrShapes);
+	HookupLighting(Material, shape, lightingData, idx, nrShapes);
 
 	return physicsShape;
 }
 
 void FRaymarchedShapeProperties::CreateParameters(UMaterial* Material, const int idx)
 {
+	FString base = "";
+	FString indexStr = FString::FromInt(idx);
+
 	//Parameters
 	ObjectOriginParam = NewObject<UMaterialExpressionVectorParameter>(Material);
 	Material->Expressions.Add(ObjectOriginParam);
-	ObjectOriginParam->ParameterName = TEXT("ObjectOrigin_" + idx);
+	base = "ObjectOrigin_";
+	base.Append(indexStr);
+	ObjectOriginParam->ParameterName = FName(base);
 	ObjectOriginParam->DefaultValue = StartPosition;
 	ObjectRotationParam = NewObject<UMaterialExpressionVectorParameter>(Material);
 	Material->Expressions.Add(ObjectRotationParam);
-	ObjectRotationParam->ParameterName = TEXT("ObjectRotation_" + idx);
+	base = "ObjectRotation_";
+	base.Append(indexStr);
+	ObjectRotationParam->ParameterName = FName(base);
 	ObjectRotationParam->DefaultValue = FVector(StartRotation.Roll, StartRotation.Pitch, StartRotation.Yaw);
 	ObjectRadiusParam = NewObject<UMaterialExpressionScalarParameter>(Material);
 	Material->Expressions.Add(ObjectRadiusParam);
-	ObjectRadiusParam->ParameterName = TEXT("ObjectRadius_" + idx);
+	base = "ObjectRadius_";
+	base.Append(indexStr);
+	ObjectRadiusParam->ParameterName = FName(base);
 	ObjectRadiusParam->DefaultValue = Radius;
 
 	DiffuseColorParam = NewObject<UMaterialExpressionVectorParameter>(Material);
 	Material->Expressions.Add(DiffuseColorParam);
-	DiffuseColorParam->ParameterName = TEXT("DiffuseColor_" + idx);
+	base = "DiffuseColor_";
+	base.Append(indexStr);
+	DiffuseColorParam->ParameterName = FName(base);
 	DiffuseColorParam->DefaultValue = DiffuseColor;
 	SpecularColorParam = NewObject<UMaterialExpressionVectorParameter>(Material);
 	Material->Expressions.Add(SpecularColorParam);
-	SpecularColorParam->ParameterName = TEXT("SpecularColor_" + idx);
+	base = "SpecularColor_";
+	base.Append(indexStr);
+	SpecularColorParam->ParameterName = FName(base);
 	SpecularColorParam->DefaultValue = SpecularColor;
 	ShinynessParam = NewObject<UMaterialExpressionScalarParameter>(Material);
 	Material->Expressions.Add(ShinynessParam);
-	ShinynessParam->ParameterName = TEXT("Shinyness_" + idx);
+	base = "Shinyness_";
+	base.Append(indexStr);
+	ShinynessParam->ParameterName = FName(base);
 	ShinynessParam->DefaultValue = Shinyness;
 
 #if WITH_EDITOR
@@ -162,60 +178,59 @@ void FRaymarchedShapeProperties::HookupMarching(UMaterial* Material, const FShap
 	ExpressionMarch->MaterialExpressionEditorY = editorOffset;
 #endif
 }
-void FRaymarchedShapeProperties::HookupShading(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx)
+void FRaymarchedShapeProperties::HookupShading(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx, const int nrShapes)
 {
 	//Creating the shaders
-	ExpressionShading = NewObject<UCustomFileMaterialExpression>(Material);
-	ExpressionShading->CodeFile = shape.Shading;
-	Material->Expressions.Add(ExpressionShading);
+	for (int i = 0; i < nrShapes; i++)
+	{
+		ExpressionShading.Add(NewObject<UCustomFileMaterialExpression>(Material));
+		ExpressionShading[i]->CodeFile = shape.Shading;
+		Material->Expressions.Add(ExpressionShading[i]);
+		//Custom shading
+		ExpressionShading[i]->Description = "Shading";
 
-	FCustomInput CustomInput;
-	FCustomOutput CustomOutput;
+		FCustomInput CustomInput;
+		FCustomOutput CustomOutput;
 
 #pragma region CustomShaders
-	//Custom shading
-	ExpressionShading->Description = "Shading";
-	//Inputs
-	ExpressionShading->Inputs.Empty();
-	CustomInput.InputName = TEXT("lastPos");
-	ExpressionShading->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("lightOrigin");
-	CustomInput.Input.Expression = lightingData.LightOrigin;
-	ExpressionShading->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("cubeOrig");
-	CustomInput.Input.Expression = ObjectOriginParam;
-	ExpressionShading->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("cubeRad");
-	CustomInput.Input.Expression = ObjectRadiusParam;
-	ExpressionShading->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("cubeRotation");
-	CustomInput.Input.Expression = ObjectRotationParam;
-	ExpressionShading->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("normal");
-	ExpressionShading->Inputs.Add(CustomInput);
-	CustomInput.InputName = TEXT("lightDir");
-	ExpressionShading->Inputs.Add(CustomInput);
-	//Outputs
-	ExpressionShading->OutputType = ECustomMaterialOutputType::CMOT_Float1;
+		//Inputs
+		ExpressionShading[i]->Inputs.Empty();
+		CustomInput.InputName = TEXT("lastPos");
+		ExpressionShading[i]->Inputs.Add(CustomInput);
+		CustomInput.InputName = TEXT("lightOrigin");
+		CustomInput.Input.Expression = lightingData.LightOriginParam;
+		ExpressionShading[i]->Inputs.Add(CustomInput);
+		CustomInput.InputName = TEXT("cubeOrig");
+		CustomInput.Input.Expression = ObjectOriginParam;
+		ExpressionShading[i]->Inputs.Add(CustomInput);
+		CustomInput.InputName = TEXT("cubeRad");
+		CustomInput.Input.Expression = ObjectRadiusParam;
+		ExpressionShading[i]->Inputs.Add(CustomInput);
+		CustomInput.InputName = TEXT("cubeRotation");
+		CustomInput.Input.Expression = ObjectRotationParam;
+		ExpressionShading[i]->Inputs.Add(CustomInput);
+		CustomInput.InputName = TEXT("normal");
+		ExpressionShading[i]->Inputs.Add(CustomInput);
+		CustomInput.InputName = TEXT("lightDir");
+		ExpressionShading[i]->Inputs.Add(CustomInput);
+		//Outputs
+		ExpressionShading[i]->OutputType = ECustomMaterialOutputType::CMOT_Float1;
 #pragma endregion CustomShaders
 
-	FName compareInputStr = "";
-	FName compareOutputStr = "";
-	auto inputLambda = [&compareInputStr](FCustomInput x) { return x.InputName == compareInputStr; };
-	auto outputLambda = [&compareOutputStr](FCustomOutput x) { return x.OutputName == compareOutputStr; };
-
-	//We add 1 to the index due to us searching in only the additional outputs, so we need to take into account the original 0th element (the original output)
-	compareInputStr = "lastPos";
-	ExpressionShading->Inputs.FindByPredicate([compareInputStr](FCustomInput x) { return x.InputName == compareInputStr; })->Input.Expression = ExpressionMarch;
+		//We add 1 to the index due to us searching in only the additional outputs, so we need to take into account the original 0th element (the original output)
+		FName compareInputStr = "";
+		compareInputStr = "lastPos";
+		ExpressionShading[i]->Inputs.FindByPredicate([compareInputStr](FCustomInput x) { return x.InputName == compareInputStr; })->Input.Expression = ExpressionMarch;
 
 #if WITH_EDITOR
-	float editorOffset = TotalEditorHeight * idx;
+		float editorOffset = TotalEditorHeight * idx;
 
-	ExpressionShading->MaterialExpressionEditorX = 0;
-	ExpressionShading->MaterialExpressionEditorY = editorOffset;
+		ExpressionShading[i]->MaterialExpressionEditorX = 0;
+		ExpressionShading[i]->MaterialExpressionEditorY = editorOffset + (ExpressionShading[i]->GetHeight() + 150.0f) * i;
 #endif
+	}
 }
-void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx)
+void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx, const int nrShapes)
 {
 	ExpressionLighting = NewObject<UCustomFileMaterialExpression>(Material);
 	ExpressionLighting->CodeFile = shape.Lighting;
@@ -244,10 +259,10 @@ void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShap
 	CustomInput.InputName = TEXT("rayDirection");
 	ExpressionLighting->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("lightOrigin");
-	CustomInput.Input.Expression = lightingData.LightOrigin;
+	CustomInput.Input.Expression = lightingData.LightOriginParam;
 	ExpressionLighting->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("lightStrength");
-	CustomInput.Input.Expression = lightingData.LightStrength;
+	CustomInput.Input.Expression = lightingData.LightStrengthParam;
 	ExpressionLighting->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("cubeOrig");
 	CustomInput.Input.Expression = ObjectOriginParam;
@@ -262,7 +277,7 @@ void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShap
 	CustomInput.Input.Expression = ShinynessParam;
 	ExpressionLighting->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("fogMultiplier");
-	CustomInput.Input.Expression = lightingData.FogMultiplier;
+	CustomInput.Input.Expression = lightingData.FogMultiplierParam;
 	ExpressionLighting->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("diffuseColor");
 	CustomInput.Input.Expression = DiffuseColorParam;
@@ -271,10 +286,10 @@ void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShap
 	CustomInput.Input.Expression = SpecularColorParam;
 	ExpressionLighting->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("lightColor");
-	CustomInput.Input.Expression = lightingData.LightColor;
+	CustomInput.Input.Expression = lightingData.LightColorParam;
 	ExpressionLighting->Inputs.Add(CustomInput);
 	CustomInput.InputName = TEXT("ambientColor");
-	CustomInput.Input.Expression = lightingData.AmbientColor;
+	CustomInput.Input.Expression = lightingData.AmbientColorParam;
 	ExpressionLighting->Inputs.Add(CustomInput);
 	//Outputs
 	ExpressionLighting->OutputType = ECustomMaterialOutputType::CMOT_Float4;
@@ -306,27 +321,58 @@ void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShap
 	compareOutputStr = "steps";
 	ExpressionLighting->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1, ExpressionMarch);
 
-	compareInputStr = "normal";
-	compareOutputStr = "normal";
-	ExpressionShading->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionLighting->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1, ExpressionLighting);	
-	compareInputStr = "lightDir";
-	compareOutputStr = "lightDir";
-	ExpressionShading->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionLighting->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1, ExpressionLighting);
-
+	for (int i = 0; i < nrShapes; i++)
+	{
+		compareInputStr = "normal";
+		compareOutputStr = "normal";
+		ExpressionShading[i]->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionLighting->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1, ExpressionLighting);
+		compareInputStr = "lightDir";
+		compareOutputStr = "lightDir";
+		ExpressionShading[i]->Inputs.FindByPredicate(inputLambda)->Input.Connect(ExpressionLighting->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1, ExpressionLighting);
+	}
 
 #if WITH_EDITOR
 	float editorOffset = TotalEditorHeight * idx;
-	float localTotalOffset = ExpressionShading->GetHeight() + 150.0f;
 
 	ExpressionLighting->MaterialExpressionEditorX = 0;
-	ExpressionLighting->MaterialExpressionEditorY = localTotalOffset + editorOffset;
+	ExpressionLighting->MaterialExpressionEditorY = editorOffset + TotalEditorHeight - (ExpressionLighting->GetHeight() + 350.0f);
 #endif
+}
+void FRaymarchedShapeProperties::HookUpOtherShading(UCustomFileMaterialExpression* Shading)
+{
+	//Inputs
+	FName compareInputStr = "";
+	compareInputStr = "cubeOrig";
+	Shading->Inputs.FindByPredicate([compareInputStr](FCustomInput x) { return x.InputName == compareInputStr; })->Input.Expression = ObjectOriginParam;
+	compareInputStr = "cubeRad";
+	Shading->Inputs.FindByPredicate([compareInputStr](FCustomInput x) { return x.InputName == compareInputStr; })->Input.Expression = ObjectRadiusParam;
+	compareInputStr = "cubeRotation";
+	Shading->Inputs.FindByPredicate([compareInputStr](FCustomInput x) { return x.InputName == compareInputStr; })->Input.Expression = ObjectRotationParam;
 }
 
 void FRaymarchedShapeProperties::UpdateShape(UMaterialInstanceDynamic* Material, const ARaymarchedPhysicsShape* shape, const int idx)
 {
-	Material->SetVectorParameterValue("ObjectOrigin_" + idx, shape->GetActorLocation());
+	FString base = "";
+	FString indexStr = FString::FromInt(idx);
+
+	base = "ObjectOrigin_";
+	base.Append(indexStr);
+	Material->SetVectorParameterValue(FName(base), shape->GetActorLocation());
+
 	FRotator rot = shape->GetActorRotation();
 	FVector radianAngles = FMath::DegreesToRadians(rot.Euler());
-	Material->SetVectorParameterValue("ObjectRotation_" + idx, radianAngles);
+	base = "ObjectRotation_";
+	base.Append(indexStr);
+	Material->SetVectorParameterValue(FName(base), radianAngles);
 }
+
+#if WITH_EDITOR
+/// <summary>
+/// To be called before generating. Will not adjust anything afterwards.
+/// </summary>
+/// <param name="nrOfShapes">The number of shapes being created in the world.</param>
+void FRaymarchedShapeProperties::AdjustEditorHeight(const int nrOfShapes, const float baseheight, const float shadowShaderHeight)
+{
+	TotalEditorHeight = baseheight + shadowShaderHeight * nrOfShapes;
+}
+#endif

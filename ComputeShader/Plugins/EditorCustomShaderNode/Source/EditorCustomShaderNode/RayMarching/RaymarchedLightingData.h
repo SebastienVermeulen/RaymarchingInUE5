@@ -24,11 +24,11 @@ private:
 
 #pragma region Variables
 public:
-	UMaterialExpressionVectorParameter* LightOrigin;
-	UMaterialExpressionVectorParameter* LightColor;
-	UMaterialExpressionVectorParameter* AmbientColor;
-	UMaterialExpressionScalarParameter* FogMultiplier;
-	UMaterialExpressionScalarParameter* LightStrength;
+	UMaterialExpressionVectorParameter* LightOriginParam;
+	UMaterialExpressionVectorParameter* LightColorParam;
+	UMaterialExpressionVectorParameter* AmbientColorParam;
+	UMaterialExpressionScalarParameter* FogMultiplierParam;
+	UMaterialExpressionScalarParameter* LightStrengthParam;
 
 protected:
 

@@ -55,9 +55,9 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, DisplayName = "Physics Shapes", Category = "Shapes", meta = (AllowPrivateAccess = true))
 	TArray<ARaymarchedPhysicsShape*> RaymarchedPhysicsShapes;
 
-	FString MaterialBaseName = "M_Material";
-	FString MaterialInstanceBaseName = "MI_Material";
-	FString PackageName = "/Game/Materials/";
+	FString MaterialBaseName;
+	FString MaterialInstanceBaseName;
+	FString PackageName;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, DisplayName = "Dynamic Material", Category = "Material", meta = (AllowPrivateAccess = true))
 	UMaterial* Material;
 	UMaterialInstanceConstant* MaterialInstance;
