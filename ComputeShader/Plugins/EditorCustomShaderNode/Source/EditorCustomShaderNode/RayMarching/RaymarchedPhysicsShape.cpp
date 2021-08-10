@@ -6,7 +6,7 @@ ARaymarchedPhysicsShape::ARaymarchedPhysicsShape(const FObjectInitializer& Objec
 	: Super(ObjectInitializer)
 	, CollisionMesh{nullptr}
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	CollisionMesh = CreateDefaultSubobject<UBoxComponent>(TEXT("Collision"));
 	CollisionMesh->SetupAttachment(GetRootComponent());
@@ -23,16 +23,19 @@ void ARaymarchedPhysicsShape::Init(float radius)
 {
 	CollisionMesh->SetBoxExtent(FVector(radius, radius, radius));
 }
-
 void ARaymarchedPhysicsShape::BeginPlay()
 {
 	Super::BeginPlay();
 
 }
-
 void ARaymarchedPhysicsShape::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+}
 
+#if WITH_EDITOR
+void ARaymarchedPhysicsShape::DebugDrawShape()
+{
 	DrawDebugBox(GetWorld(), GetActorLocation(), CollisionMesh->GetScaledBoxExtent(), GetActorRotation().Quaternion(), FColor::Purple, false, -1, 0, 10);
 }
+#endif

@@ -18,6 +18,10 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
+#if WITH_EDITOR
+	void DebugDrawShape();
+#endif
+
 protected:
 	virtual void BeginPlay() override;
 

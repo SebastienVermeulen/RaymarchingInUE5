@@ -33,6 +33,7 @@ public:
 
 #if WITH_EDITOR
 	void AdjustEditorHeight(const int nrOfShapes, const float baseheight = 1200.0f, const float shadowShaderHeight = 300.0f);
+	void DebugDrawShape(UWorld* World);
 #endif
 
 protected:

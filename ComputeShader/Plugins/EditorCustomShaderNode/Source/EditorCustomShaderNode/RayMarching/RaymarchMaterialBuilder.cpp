@@ -4,6 +4,7 @@
 #include "RaymarchedPhysicsShape.h"
 #include "RaymarchedLightingProperties.h"
 #include "../CustomExpression/CustomFileMaterialExpression.h"
+#include "DrawDebugHelpers.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Factories/MaterialFactoryNew.h"
@@ -32,6 +33,9 @@
 
 ARaymarchMaterialBuilder::ARaymarchMaterialBuilder()
 	:RaymarchedShapesProperties{}
+#if WITH_EDITOR
+	, bShowPreview{ false }
+#endif
 	, RaymarchedPhysicsShapes{}
 	, MaterialBaseName{ "M_Material" }
 	, MaterialInstanceBaseName{ "MI_Material" }
@@ -63,9 +67,37 @@ void ARaymarchMaterialBuilder::BeginPlay()
 }
 void ARaymarchMaterialBuilder::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
+#if WITH_EDITOR
+	if (GetWorld() != nullptr && GetWorld()->WorldType == EWorldType::Editor)
+	{
+		EditorTick(DeltaTime);
+	}
+	else
+#endif
+	{
+		Super::Tick(DeltaTime);
+		
+		UpdateMaterial();
+	}
+}
+void ARaymarchMaterialBuilder::EditorTick(float DeltaTime)
+{
+	if (bShowPreview)
+	{
+		DebugDrawShapes();
+	}
+}
 
-	UpdateMaterial();
+bool ARaymarchMaterialBuilder::ShouldTickIfViewportsOnly() const
+{
+	if (GetWorld() != nullptr && GetWorld()->WorldType == EWorldType::Editor)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 void ARaymarchMaterialBuilder::CreateMaterial()
@@ -157,6 +189,16 @@ void ARaymarchMaterialBuilder::UpdateMaterial()
 		properties.UpdateShape(DynamicMaterial, RaymarchedPhysicsShapes[i], i);
 	}
 }
+#if WITH_EDITOR
+void ARaymarchMaterialBuilder::DebugDrawShapes() 
+{
+	UWorld* World = GetWorld();
+	for (int i = 0; i < RaymarchedShapesProperties.Num(); i++)
+	{
+		RaymarchedShapesProperties[i].DebugDrawShape(World);
+	}
+}
+#endif
 
 UMaterialExpressionLinearInterpolate* ARaymarchMaterialBuilder::SetupStaticVariables()
 {

@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "RaymarchedShapeProperties.h"
+#include "RaymarchedLightingProperties.h"
 #include "ShapeShaderProperties.h"
 #include "RaymarchedLightingData.h"
 #include "RaymarchMaterialBuilder.generated.h"
@@ -12,7 +13,6 @@ class UMaterialExpressionLinearInterpolate;
 class UPostProcessComponent;
 class UMaterialInstanceDynamic;
 class UMaterialInstanceConstant;
-struct FRaymarchedLightingProperties;
 
 UCLASS()
 class ARaymarchMaterialBuilder : public AActor
@@ -23,6 +23,10 @@ class ARaymarchMaterialBuilder : public AActor
 public:
 	ARaymarchMaterialBuilder();
 	virtual void Tick(float DeltaTime) override;
+	void EditorTick(float DeltaTime);
+
+	//https://chriszuko.com/ue4-how-to-editor-tick/
+	virtual bool ShouldTickIfViewportsOnly() const override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -31,6 +35,9 @@ private:
 	void CreateMaterial();
 	void PopulateMaterial();
 	void UpdateMaterial();
+#if WITH_EDITOR
+	void DebugDrawShapes();
+#endif
 
 	UMaterialExpressionLinearInterpolate* SetupStaticVariables();
 	void SetupConnectingVariables(UMaterialExpressionLinearInterpolate* lerp);
@@ -42,6 +49,10 @@ private:
 
 #pragma region Variables
 public:
+#if WITH_EDITOR
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName = "Show Preview", Category = "Shapes")
+	bool bShowPreview;
+#endif
 
 protected:
 

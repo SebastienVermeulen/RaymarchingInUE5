@@ -12,6 +12,7 @@
 
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/CustomFileMatExprCustomization.h"
+#include "Editor/MaterialBuilderCustomization.h"
 
 #endif
 
@@ -23,20 +24,24 @@ void FEditorCustomShaderNodeModule::StartupModule()
 
     //Register custom factory types
     IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
-    // add custom category
-    EAssetTypeCategories::Type ExampleCategory = AssetTools.RegisterAdvancedAssetCategory(FName(TEXT("Shaders")), FText::FromString("Shaders"));
-    // register our custom asset with example category
+    //Add custom category
+    EAssetTypeCategories::Type ExampleCategory = AssetTools.RegisterAdvancedAssetCategory(FName(TEXT("Shaders")), 
+        FText::FromString("Shaders"));
+    //Register our custom asset with example category
     TSharedPtr<IAssetTypeActions> Action = MakeShareable(new FShaderFileTypeActions(ExampleCategory));
     AssetTools.RegisterAssetTypeActions(Action.ToSharedRef());
-    // saved it here for unregister later
+    //Saved it here for unregister later
     CreatedAssetTypeActions.Add(Action);
 
 #if WITH_EDITOR
-    //Add custom editor stuff to the CustomFileMaterialExpression class 
     FPropertyEditorModule& EditorModule =
         FModuleManager::LoadModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
+    //Add custom editor stuff to the CustomFileMaterialExpression class 
     EditorModule.RegisterCustomClassLayout("CustomFileMaterialExpression",
         FOnGetDetailCustomizationInstance::CreateStatic(&FCustomFileMatExprCustomization::MakeInstance));
+    //Add custom editor stuff to the MaterialBuilderExpression class 
+    EditorModule.RegisterCustomClassLayout("Shapes",
+        FOnGetDetailCustomizationInstance::CreateStatic(&FMaterialBuilderCustomization::MakeInstance));
 #endif
 
     IModuleInterface::StartupModule();

@@ -3,6 +3,7 @@
 #include "RaymarchedPhysicsShape.h"
 #include "RaymarchedLightingData.h"
 #include "RaymarchMaterialBuilder.h"
+#include "DrawDebugHelpers.h"
 
 #include "Materials/MaterialInstanceDynamic.h"
 
@@ -20,8 +21,8 @@ FRaymarchedShapeProperties::FRaymarchedShapeProperties()
 	, StartPosition{}
 	, StartRotation{}
 	, Radius{}
-	, DiffuseColor{}
-	, SpecularColor{}
+	, DiffuseColor{ FColor(0,0,0,1.0f) }
+	, SpecularColor{ FColor(0,0,0,1.0f) }
 	, Shinyness{}
 	, ExpressionMarch{ nullptr }
 	, ExpressionShading{ }
@@ -374,5 +375,10 @@ void FRaymarchedShapeProperties::UpdateShape(UMaterialInstanceDynamic* Material,
 void FRaymarchedShapeProperties::AdjustEditorHeight(const int nrOfShapes, const float baseheight, const float shadowShaderHeight)
 {
 	TotalEditorHeight = baseheight + shadowShaderHeight * nrOfShapes;
+}
+
+void FRaymarchedShapeProperties::DebugDrawShape(UWorld* World)
+{
+	DrawDebugBox(World, StartPosition, FVector(Radius), StartRotation.Quaternion(), DiffuseColor, false, -1, 0, 10);
 }
 #endif
