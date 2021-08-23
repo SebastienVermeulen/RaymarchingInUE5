@@ -1,8 +1,8 @@
-#include "RaymarchedShapeProperties.h"
-#include "../CustomExpression/CustomFileMaterialExpression.h"
-#include "RaymarchedPhysicsShape.h"
-#include "RaymarchedLightingData.h"
-#include "RaymarchMaterialBuilder.h"
+#include "RaymarchedCubeProperties.h"
+#include "../../CustomExpression/CustomFileMaterialExpression.h"
+#include "../RaymarchedPhysicsShape.h"
+#include "../RaymarchedLightingData.h"
+#include "../RaymarchMaterialBuilder.h"
 #include "DrawDebugHelpers.h"
 
 #include "Materials/MaterialInstanceDynamic.h"
@@ -13,33 +13,15 @@
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionLinearInterpolate.h"
 
-UMaterialExpressionNormalize* FRaymarchedShapeProperties::RayDir = nullptr;
-UMaterialExpressionCameraPositionWS* FRaymarchedShapeProperties::RayOrig = nullptr;
-
-FRaymarchedShapeProperties::FRaymarchedShapeProperties() 
-	:ShapeType{}
-	, StartPosition{}
-	, StartRotation{}
+URaymarchedCubeProperties::URaymarchedCubeProperties()
+	:URaymarchedShapeProperties()
+	, IRaymarchedShapeInterface()
 	, Radius{}
-	, DiffuseColor{ FColor(0,0,0,1.0f) }
-	, SpecularColor{ FColor(0,0,0,1.0f) }
-	, Shinyness{}
-	, ExpressionMarch{ nullptr }
-	, ExpressionShading{ }
-	, ExpressionLighting{ nullptr }
-#if WITH_EDITOR
-	, TotalEditorHeight{1500}
-#endif
-	, ObjectOriginParam{ nullptr }
-	, ObjectRotationParam{ nullptr }
-	, ObjectRadiusParam{ nullptr }
-	, DiffuseColorParam{ nullptr }
-	, SpecularColorParam{ nullptr }
-	, ShinynessParam{ nullptr }
 {	
+	ShapeType = TEnumAsByte<Shape>(Shape::Cube);
 }
 
-ARaymarchedPhysicsShape* FRaymarchedShapeProperties::CreateShape(ARaymarchMaterialBuilder* Builder, UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx, const int nrShapes)
+ARaymarchedPhysicsShape* URaymarchedCubeProperties::CreateShape(ARaymarchMaterialBuilder* Builder, UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx, const int nrShapes)
 {
 	//Create the physics object
 	FActorSpawnParameters params{};
@@ -58,7 +40,7 @@ ARaymarchedPhysicsShape* FRaymarchedShapeProperties::CreateShape(ARaymarchMateri
 	return physicsShape;
 }
 
-void FRaymarchedShapeProperties::CreateParameters(UMaterial* Material, const int idx)
+void URaymarchedCubeProperties::CreateParameters(UMaterial* Material, const int idx)
 {
 	FString base = "";
 	FString indexStr = FString::FromInt(idx);
@@ -127,7 +109,7 @@ void FRaymarchedShapeProperties::CreateParameters(UMaterial* Material, const int
 #endif
 }
 
-void FRaymarchedShapeProperties::HookupMarching(UMaterial* Material, const FShapeShaderProperties shape, const int idx)
+void URaymarchedCubeProperties::HookupMarching(UMaterial* Material, const FShapeShaderProperties shape, const int idx)
 {
 	//Creating the shaders
 	ExpressionMarch = NewObject<UCustomFileMaterialExpression>(Material);
@@ -179,7 +161,7 @@ void FRaymarchedShapeProperties::HookupMarching(UMaterial* Material, const FShap
 	ExpressionMarch->MaterialExpressionEditorY = editorOffset;
 #endif
 }
-void FRaymarchedShapeProperties::HookupShading(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx, const int nrShapes)
+void URaymarchedCubeProperties::HookupShading(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx, const int nrShapes)
 {
 	//Creating the shaders
 	for (int i = 0; i < nrShapes; i++)
@@ -231,7 +213,7 @@ void FRaymarchedShapeProperties::HookupShading(UMaterial* Material, const FShape
 #endif
 	}
 }
-void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx, const int nrShapes)
+void URaymarchedCubeProperties::HookupLighting(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx, const int nrShapes)
 {
 	ExpressionLighting = NewObject<UCustomFileMaterialExpression>(Material);
 	ExpressionLighting->CodeFile = shape.Lighting;
@@ -339,7 +321,7 @@ void FRaymarchedShapeProperties::HookupLighting(UMaterial* Material, const FShap
 	ExpressionLighting->MaterialExpressionEditorY = editorOffset + TotalEditorHeight - (ExpressionLighting->GetHeight() + 350.0f);
 #endif
 }
-void FRaymarchedShapeProperties::HookUpOtherShading(UCustomFileMaterialExpression* Shading)
+void URaymarchedCubeProperties::HookUpOtherShading(UCustomFileMaterialExpression* Shading)
 {
 	//Inputs
 	FName compareInputStr = "";
@@ -351,7 +333,7 @@ void FRaymarchedShapeProperties::HookUpOtherShading(UCustomFileMaterialExpressio
 	Shading->Inputs.FindByPredicate([compareInputStr](FCustomInput x) { return x.InputName == compareInputStr; })->Input.Expression = ObjectRotationParam;
 }
 
-void FRaymarchedShapeProperties::UpdateShape(UMaterialInstanceDynamic* Material, const ARaymarchedPhysicsShape* shape, const int idx)
+void URaymarchedCubeProperties::UpdateShape(UMaterialInstanceDynamic* Material, const ARaymarchedPhysicsShape* shape, const int idx)
 {
 	FString base = "";
 	FString indexStr = FString::FromInt(idx);
@@ -372,12 +354,12 @@ void FRaymarchedShapeProperties::UpdateShape(UMaterialInstanceDynamic* Material,
 /// To be called before generating. Will not adjust anything afterwards.
 /// </summary>
 /// <param name="nrOfShapes">The number of shapes being created in the world.</param>
-void FRaymarchedShapeProperties::AdjustEditorHeight(const int nrOfShapes, const float baseheight, const float shadowShaderHeight)
+void URaymarchedCubeProperties::AdjustEditorHeight(const int nrOfShapes, const float baseheight, const float shadowShaderHeight)
 {
 	TotalEditorHeight = baseheight + shadowShaderHeight * nrOfShapes;
 }
 
-void FRaymarchedShapeProperties::DebugDrawShape(UWorld* World)
+void URaymarchedCubeProperties::DebugDrawShape(UWorld* World)
 {
 	DrawDebugBox(World, StartPosition, FVector(Radius), StartRotation.Quaternion(), DiffuseColor, false, -1, 0, 10);
 }

@@ -4,6 +4,7 @@
 #include "RaymarchedPhysicsShape.h"
 #include "RaymarchedLightingProperties.h"
 #include "../CustomExpression/CustomFileMaterialExpression.h"
+#include "Shapes/RaymarchedShapeInterface.h"
 #include "DrawDebugHelpers.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -32,10 +33,10 @@
 #include "Materials/MaterialExpressionMin.h"
 
 ARaymarchMaterialBuilder::ARaymarchMaterialBuilder()
-	:RaymarchedShapesProperties{}
 #if WITH_EDITOR
-	, bShowPreview{ false }
+	:bShowPreview{ false }
 #endif
+	, RaymarchedShapesProperties{}
 	, RaymarchedPhysicsShapes{}
 	, MaterialBaseName{ "M_Material" }
 	, MaterialInstanceBaseName{ "MI_Material" }
@@ -143,19 +144,20 @@ void ARaymarchMaterialBuilder::PopulateMaterial()
 	int nrOfShapes = RaymarchedShapesProperties.Num();
 	for (int i = 0; i < nrOfShapes; i++)
 	{
-		FRaymarchedShapeProperties& properties = RaymarchedShapesProperties[i];
+		URaymarchedShapeProperties* shapeProperties = RaymarchedShapesProperties[i];
+		IRaymarchedShapeInterface* shapeInterface = Cast<IRaymarchedShapeInterface>(shapeProperties);
 #if WITH_EDITOR
-		properties.AdjustEditorHeight(nrOfShapes);
+		shapeInterface->AdjustEditorHeight(nrOfShapes);
 #endif
 		//Find the correct shape
-		FShapeShaderProperties* shape = ShapeShaderProperties.FindByPredicate([properties](FShapeShaderProperties x) 
+		FShapeShaderProperties* shape = ShapeShaderProperties.FindByPredicate([shapeProperties](FShapeShaderProperties x)
 			{ 
-				return x.ShapeType == properties.ShapeType; 
+				return x.ShapeType == shapeProperties->ShapeType;
 			});
 		if (shape != nullptr)
 		{
 			//Create it
-			RaymarchedPhysicsShapes.Add(properties.CreateShape(this, Material, *shape, LightingData, i, nrOfShapes));
+			RaymarchedPhysicsShapes.Add(shapeInterface->CreateShape(this, Material, *shape, LightingData, i, nrOfShapes));
 		}
 		else 
 		{
@@ -185,8 +187,7 @@ void ARaymarchMaterialBuilder::UpdateMaterial()
 	//So that visuals follow the physics
 	for (int i = 0; i < RaymarchedShapesProperties.Num(); i++)
 	{
-		FRaymarchedShapeProperties& properties = RaymarchedShapesProperties[i];
-		properties.UpdateShape(DynamicMaterial, RaymarchedPhysicsShapes[i], i);
+		Cast<IRaymarchedShapeInterface>(RaymarchedShapesProperties[i])->UpdateShape(DynamicMaterial, RaymarchedPhysicsShapes[i], i);
 	}
 }
 #if WITH_EDITOR
@@ -195,7 +196,11 @@ void ARaymarchMaterialBuilder::DebugDrawShapes()
 	UWorld* World = GetWorld();
 	for (int i = 0; i < RaymarchedShapesProperties.Num(); i++)
 	{
-		RaymarchedShapesProperties[i].DebugDrawShape(World);
+		//Check if the shape is a shape and not simply a new/empty object
+		if (RaymarchedShapesProperties[i] != nullptr && RaymarchedShapesProperties[i]->ShapeType != Shape::None)
+		{
+			Cast<IRaymarchedShapeInterface>(RaymarchedShapesProperties[i])->DebugDrawShape(World);
+		}
 	}
 }
 #endif
@@ -215,9 +220,9 @@ UMaterialExpressionLinearInterpolate* ARaymarchMaterialBuilder::SetupStaticVaria
 	subtr->B.Expression = camPos;
 	norm->VectorInput.Expression = subtr;
 
-	FRaymarchedShapeProperties temp{};
-	temp.RayDir = norm;
-	temp.RayOrig = camPos;
+	URaymarchedShapeProperties* temp{};
+	temp->RayDir = norm;
+	temp->RayOrig = camPos;
 
 	//Create class as parent to avoid stupid stuff
 	UClass* theClass = FindObject<UClass>(ANY_PACKAGE, TEXT("MaterialExpressionSceneTexture"));
@@ -271,13 +276,13 @@ void ARaymarchMaterialBuilder::SetupConnectingVariables(UMaterialExpressionLinea
 		maskA->G = 0;
 		maskA->B = 0;
 		maskA->A = 1;
-		maskA->Input.Expression = RaymarchedShapesProperties[0].ExpressionLighting;
+		maskA->Input.Expression = RaymarchedShapesProperties[0]->ExpressionLighting;
 
 		UMaterialExpressionLinearInterpolate* lerpLightingShading = NewObject<UMaterialExpressionLinearInterpolate>(Material);
 		Material->Expressions.Add(lerpLightingShading);
-		lerpLightingShading->A.Expression = RaymarchedShapesProperties[0].ExpressionLighting;
+		lerpLightingShading->A.Expression = RaymarchedShapesProperties[0]->ExpressionLighting;
 		lerpLightingShading->B.Expression = LightingData.AmbientColorParam;
-		lerpLightingShading->Alpha.Expression = RaymarchedShapesProperties[0].ExpressionShading[0];
+		lerpLightingShading->Alpha.Expression = RaymarchedShapesProperties[0]->ExpressionShading[0];
 
 		UMaterialExpressionComponentMask* maskRGB = NewObject<UMaterialExpressionComponentMask>(Material);
 		Material->Expressions.Add(maskRGB);
@@ -295,11 +300,11 @@ void ARaymarchMaterialBuilder::SetupConnectingVariables(UMaterialExpressionLinea
 
 #if WITH_EDITOR
 		maskRGB->MaterialExpressionEditorX = 700.0f;
-		maskRGB->MaterialExpressionEditorY = RaymarchedShapesProperties[0].ExpressionLighting->MaterialExpressionEditorY;
+		maskRGB->MaterialExpressionEditorY = RaymarchedShapesProperties[0]->ExpressionLighting->MaterialExpressionEditorY;
 		maskA->MaterialExpressionEditorX = 400.0f;
 		maskA->MaterialExpressionEditorY = maskRGB->MaterialExpressionEditorY + maskRGB->GetHeight();
 		lerpLightingShading->MaterialExpressionEditorX = 400.0f;
-		lerpLightingShading->MaterialExpressionEditorY = RaymarchedShapesProperties[0].ExpressionShading[0]->MaterialExpressionEditorY;
+		lerpLightingShading->MaterialExpressionEditorY = RaymarchedShapesProperties[0]->ExpressionShading[0]->MaterialExpressionEditorY;
 #endif
 	}
 	else if (RaymarchedPhysicsShapes.Num() > 1)
@@ -328,7 +333,7 @@ void ARaymarchMaterialBuilder::SetupConnectingVariables(UMaterialExpressionLinea
 		{
 			//Multiply shading
 			UMaterialExpressionMultiply* lastShadingMult = nullptr;
-			TArray<UCustomFileMaterialExpression*> shading = RaymarchedShapesProperties[i].ExpressionShading;
+			TArray<UCustomFileMaterialExpression*> shading = RaymarchedShapesProperties[i]->ExpressionShading;
 			for (int j = 0; j < shading.Num(); j++)
 			{
 				UMaterialExpressionMultiply* currentMult = NewObject<UMaterialExpressionMultiply>(Material);
@@ -346,10 +351,10 @@ void ARaymarchMaterialBuilder::SetupConnectingVariables(UMaterialExpressionLinea
 
 #if WITH_EDITOR
 					currentMult->MaterialExpressionEditorX = 
-						RaymarchedShapesProperties[0].ExpressionShading[0]->MaterialExpressionEditorX + 
-						RaymarchedShapesProperties[0].ExpressionShading[0]->GetWidth() + 100;
+						RaymarchedShapesProperties[0]->ExpressionShading[0]->MaterialExpressionEditorX +
+						RaymarchedShapesProperties[0]->ExpressionShading[0]->GetWidth() + 100;
 					currentMult->MaterialExpressionEditorY = 
-						RaymarchedShapesProperties[i].ExpressionShading[0]->MaterialExpressionEditorY;
+						RaymarchedShapesProperties[i]->ExpressionShading[0]->MaterialExpressionEditorY;
 #endif
 				}
 				else 
@@ -361,10 +366,10 @@ void ARaymarchMaterialBuilder::SetupConnectingVariables(UMaterialExpressionLinea
 
 #if WITH_EDITOR
 					currentMult->MaterialExpressionEditorX = 
-						RaymarchedShapesProperties[0].ExpressionShading[0]->MaterialExpressionEditorX + 
-						RaymarchedShapesProperties[0].ExpressionShading[0]->GetWidth() + 100;
+						RaymarchedShapesProperties[0]->ExpressionShading[0]->MaterialExpressionEditorX +
+						RaymarchedShapesProperties[0]->ExpressionShading[0]->GetWidth() + 100;
 					currentMult->MaterialExpressionEditorY = 
-						RaymarchedShapesProperties[i].ExpressionShading[0]->MaterialExpressionEditorY + 
+						RaymarchedShapesProperties[i]->ExpressionShading[0]->MaterialExpressionEditorY +
 						currentMult->GetHeight() * (j - 1);
 #endif
 				}
@@ -377,7 +382,7 @@ void ARaymarchMaterialBuilder::SetupConnectingVariables(UMaterialExpressionLinea
 			lightingMaskA->G = 0;
 			lightingMaskA->B = 0;
 			lightingMaskA->A = 1;
-			lightingMaskA->Input.Expression = RaymarchedShapesProperties[i].ExpressionLighting;
+			lightingMaskA->Input.Expression = RaymarchedShapesProperties[i]->ExpressionLighting;
 			UMaterialExpressionComponentMask* ambientMaskRGB = NewObject<UMaterialExpressionComponentMask>(Material);
 			Material->Expressions.Add(ambientMaskRGB);
 			ambientMaskRGB->R = 1;
@@ -391,38 +396,38 @@ void ARaymarchMaterialBuilder::SetupConnectingVariables(UMaterialExpressionLinea
 			append->A.Expression = ambientMaskRGB;
 			append->B.Expression = lightingMaskA;
 
-			RaymarchedShapesProperties[i].FinalColorExpression = NewObject<UMaterialExpressionLinearInterpolate>(Material);
-			Material->Expressions.Add(RaymarchedShapesProperties[i].FinalColorExpression);
-			RaymarchedShapesProperties[i].FinalColorExpression->A.Expression = append;
-			RaymarchedShapesProperties[i].FinalColorExpression->B.Expression = RaymarchedShapesProperties[i].ExpressionLighting;
-			RaymarchedShapesProperties[i].FinalColorExpression->Alpha.Expression = lastShadingMult;
+			RaymarchedShapesProperties[i]->FinalColorExpression = NewObject<UMaterialExpressionLinearInterpolate>(Material);
+			Material->Expressions.Add(RaymarchedShapesProperties[i]->FinalColorExpression);
+			RaymarchedShapesProperties[i]->FinalColorExpression->A.Expression = append;
+			RaymarchedShapesProperties[i]->FinalColorExpression->B.Expression = RaymarchedShapesProperties[i]->ExpressionLighting;
+			RaymarchedShapesProperties[i]->FinalColorExpression->Alpha.Expression = lastShadingMult;
 
 #if WITH_EDITOR
 			lightingMaskA->MaterialExpressionEditorX = lastShadingMult->MaterialExpressionEditorX;
-			lightingMaskA->MaterialExpressionEditorY = RaymarchedShapesProperties[i].ExpressionShading[0]->MaterialExpressionEditorY - lastShadingMult->GetHeight();			
+			lightingMaskA->MaterialExpressionEditorY = RaymarchedShapesProperties[i]->ExpressionShading[0]->MaterialExpressionEditorY - lastShadingMult->GetHeight();			
 			ambientMaskRGB->MaterialExpressionEditorX = lastShadingMult->MaterialExpressionEditorX;
-			ambientMaskRGB->MaterialExpressionEditorY = RaymarchedShapesProperties[i].ExpressionShading[0]->MaterialExpressionEditorY - lastShadingMult->GetHeight() - lightingMaskA->GetHeight();
+			ambientMaskRGB->MaterialExpressionEditorY = RaymarchedShapesProperties[i]->ExpressionShading[0]->MaterialExpressionEditorY - lastShadingMult->GetHeight() - lightingMaskA->GetHeight();
 						
 			append->MaterialExpressionEditorX = lastShadingMult->MaterialExpressionEditorX + lastShadingMult->GetWidth() + 50;
 			append->MaterialExpressionEditorY = lightingMaskA->MaterialExpressionEditorY;
 
-			RaymarchedShapesProperties[i].FinalColorExpression->MaterialExpressionEditorX = 
+			RaymarchedShapesProperties[i]->FinalColorExpression->MaterialExpressionEditorX = 
 				lastShadingMult->MaterialExpressionEditorX + lastShadingMult->GetWidth() + 250;
-			RaymarchedShapesProperties[i].FinalColorExpression->MaterialExpressionEditorY =
-				RaymarchedShapesProperties[i].ExpressionShading[0]->MaterialExpressionEditorY;
+			RaymarchedShapesProperties[i]->FinalColorExpression->MaterialExpressionEditorY =
+				RaymarchedShapesProperties[i]->ExpressionShading[0]->MaterialExpressionEditorY;
 #endif
 		}
 		//Connect shading with other parameters
 		for (int i = 0; i < RaymarchedShapesProperties.Num(); i++)
 		{
-			TArray<UCustomFileMaterialExpression*> shading = RaymarchedShapesProperties[i].ExpressionShading;
+			TArray<UCustomFileMaterialExpression*> shading = RaymarchedShapesProperties[i]->ExpressionShading;
 			for (int j = 0; j < shading.Num(); j++)
 			{			
 				if (j == i) 
 				{
 					continue;
 				}
-				RaymarchedShapesProperties[j].HookUpOtherShading(shading[j]);
+				Cast<IRaymarchedShapeInterface>(RaymarchedShapesProperties[j])->HookUpOtherShading(shading[j]);
 			}
 		}
 		
@@ -438,10 +443,10 @@ void ARaymarchMaterialBuilder::SetupConnectingVariables(UMaterialExpressionLinea
 			{
 				UMaterialExpressionSubtract* sub = NewObject<UMaterialExpressionSubtract>(Material);
 				Material->Expressions.Add(sub);
-				RaymarchedShapesProperties[i].ExpressionMarch->ConnectExpression(
-					&sub->A, RaymarchedShapesProperties[i].ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1);
-				RaymarchedShapesProperties[i + 1].ExpressionMarch->ConnectExpression(
-					&sub->B, RaymarchedShapesProperties[i + 1].ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1);
+				RaymarchedShapesProperties[i]->ExpressionMarch->ConnectExpression(
+					&sub->A, RaymarchedShapesProperties[i]->ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1);
+				RaymarchedShapesProperties[i + 1]->ExpressionMarch->ConnectExpression(
+					&sub->B, RaymarchedShapesProperties[i + 1]->ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1);
 				UMaterialExpressionSaturate* sat = NewObject<UMaterialExpressionSaturate>(Material);
 				Material->Expressions.Add(sat);
 				sat->Input.Expression = sub;
@@ -450,34 +455,34 @@ void ARaymarchMaterialBuilder::SetupConnectingVariables(UMaterialExpressionLinea
 				ceil->Input.Expression = sat;
 				depthLerp = NewObject<UMaterialExpressionLinearInterpolate>(Material);
 				Material->Expressions.Add(depthLerp);
-				depthLerp->A.Expression = RaymarchedShapesProperties[i].FinalColorExpression;
-				depthLerp->B.Expression = RaymarchedShapesProperties[i + 1].FinalColorExpression;
+				depthLerp->A.Expression = RaymarchedShapesProperties[i]->FinalColorExpression;
+				depthLerp->B.Expression = RaymarchedShapesProperties[i + 1]->FinalColorExpression;
 				depthLerp->Alpha.Expression = ceil;
 				lastMin = NewObject<UMaterialExpressionMin>(Material);
 				Material->Expressions.Add(lastMin);
-				RaymarchedShapesProperties[i].ExpressionMarch->ConnectExpression(
-					&lastMin->A, RaymarchedShapesProperties[i].ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1);
-				RaymarchedShapesProperties[i + 1].ExpressionMarch->ConnectExpression(
-					&lastMin->B, RaymarchedShapesProperties[i + 1].ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1);
+				RaymarchedShapesProperties[i]->ExpressionMarch->ConnectExpression(
+					&lastMin->A, RaymarchedShapesProperties[i]->ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1);
+				RaymarchedShapesProperties[i + 1]->ExpressionMarch->ConnectExpression(
+					&lastMin->B, RaymarchedShapesProperties[i + 1]->ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1);
 
 #if WITH_EDITOR
 				sub->MaterialExpressionEditorX =
-					RaymarchedShapesProperties[0].ExpressionLighting->MaterialExpressionEditorX + 300;
+					RaymarchedShapesProperties[0]->ExpressionLighting->MaterialExpressionEditorX + 300;
 				sub->MaterialExpressionEditorY =
-					RaymarchedShapesProperties[i].ExpressionLighting->MaterialExpressionEditorY -
-					RaymarchedShapesProperties[i].ExpressionLighting->GetHeight();
+					RaymarchedShapesProperties[i]->ExpressionLighting->MaterialExpressionEditorY -
+					RaymarchedShapesProperties[i]->ExpressionLighting->GetHeight();
 				sat->MaterialExpressionEditorX = sub->MaterialExpressionEditorX + sub->GetWidth() + 50;
 				sat->MaterialExpressionEditorY =
-					RaymarchedShapesProperties[i].ExpressionLighting->MaterialExpressionEditorY -
-					RaymarchedShapesProperties[i].ExpressionLighting->GetHeight();
+					RaymarchedShapesProperties[i]->ExpressionLighting->MaterialExpressionEditorY -
+					RaymarchedShapesProperties[i]->ExpressionLighting->GetHeight();
 				ceil->MaterialExpressionEditorX = sat->MaterialExpressionEditorX + sat->GetWidth() + 50;
 				ceil->MaterialExpressionEditorY =
-					RaymarchedShapesProperties[i].ExpressionLighting->MaterialExpressionEditorY -
-					RaymarchedShapesProperties[i].ExpressionLighting->GetHeight();
+					RaymarchedShapesProperties[i]->ExpressionLighting->MaterialExpressionEditorY -
+					RaymarchedShapesProperties[i]->ExpressionLighting->GetHeight();
 				depthLerp->MaterialExpressionEditorX = ceil->MaterialExpressionEditorX + ceil->GetWidth() + 50;
 				depthLerp->MaterialExpressionEditorY =
-					RaymarchedShapesProperties[i].ExpressionLighting->MaterialExpressionEditorY -
-					RaymarchedShapesProperties[i].ExpressionLighting->GetHeight();				
+					RaymarchedShapesProperties[i]->ExpressionLighting->MaterialExpressionEditorY -
+					RaymarchedShapesProperties[i]->ExpressionLighting->GetHeight();				
 				lastMin->MaterialExpressionEditorX = sub->MaterialExpressionEditorX;
 				lastMin->MaterialExpressionEditorY = sub->MaterialExpressionEditorY - sub->GetHeight();
 #endif
@@ -489,8 +494,8 @@ void ARaymarchMaterialBuilder::SetupConnectingVariables(UMaterialExpressionLinea
 				UMaterialExpressionSubtract* sub = NewObject<UMaterialExpressionSubtract>(Material);
 				Material->Expressions.Add(sub);
 				sub->A.Expression = lastMin;
-				RaymarchedShapesProperties[i].ExpressionMarch->ConnectExpression(
-					&sub->B, RaymarchedShapesProperties[i].ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1);
+				RaymarchedShapesProperties[i]->ExpressionMarch->ConnectExpression(
+					&sub->B, RaymarchedShapesProperties[i]->ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1);
 				UMaterialExpressionSaturate* sat = NewObject<UMaterialExpressionSaturate>(Material);
 				Material->Expressions.Add(sat);
 				sat->Input.Expression = sub;
@@ -501,33 +506,33 @@ void ARaymarchMaterialBuilder::SetupConnectingVariables(UMaterialExpressionLinea
 				depthLerp = NewObject<UMaterialExpressionLinearInterpolate>(Material);
 				Material->Expressions.Add(depthLerp);
 				depthLerp->A.Expression = lastDepthLerp;
-				depthLerp->B.Expression = RaymarchedShapesProperties[i].FinalColorExpression;
+				depthLerp->B.Expression = RaymarchedShapesProperties[i]->FinalColorExpression;
 				depthLerp->Alpha.Expression = ceil;
 				UMaterialExpressionMin* lastMinPrevious = lastMin;
 				lastMin = NewObject<UMaterialExpressionMin>(Material);
 				Material->Expressions.Add(lastMin);
 				lastMin->A.Expression = lastMinPrevious;
-				RaymarchedShapesProperties[i].ExpressionMarch->ConnectExpression(
-					&lastMin->B, RaymarchedShapesProperties[i].ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1);
+				RaymarchedShapesProperties[i]->ExpressionMarch->ConnectExpression(
+					&lastMin->B, RaymarchedShapesProperties[i]->ExpressionMarch->AdditionalOutputs.IndexOfByPredicate(outputLambda) + 1);
 
 #if WITH_EDITOR
 				sub->MaterialExpressionEditorX =
-					RaymarchedShapesProperties[0].ExpressionLighting->MaterialExpressionEditorX + 300;
+					RaymarchedShapesProperties[0]->ExpressionLighting->MaterialExpressionEditorX + 300;
 				sub->MaterialExpressionEditorY =
-					RaymarchedShapesProperties[i].ExpressionLighting->MaterialExpressionEditorY -
-					RaymarchedShapesProperties[i].ExpressionLighting->GetHeight();
+					RaymarchedShapesProperties[i]->ExpressionLighting->MaterialExpressionEditorY -
+					RaymarchedShapesProperties[i]->ExpressionLighting->GetHeight();
 				sat->MaterialExpressionEditorX = sub->MaterialExpressionEditorX + sub->GetWidth() + 50;
 				sat->MaterialExpressionEditorY =
-					RaymarchedShapesProperties[i].ExpressionLighting->MaterialExpressionEditorY -
-					RaymarchedShapesProperties[i].ExpressionLighting->GetHeight();
+					RaymarchedShapesProperties[i]->ExpressionLighting->MaterialExpressionEditorY -
+					RaymarchedShapesProperties[i]->ExpressionLighting->GetHeight();
 				ceil->MaterialExpressionEditorX = sat->MaterialExpressionEditorX + sat->GetWidth() + 50;
 				ceil->MaterialExpressionEditorY =
-					RaymarchedShapesProperties[i].ExpressionLighting->MaterialExpressionEditorY -
-					RaymarchedShapesProperties[i].ExpressionLighting->GetHeight();
+					RaymarchedShapesProperties[i]->ExpressionLighting->MaterialExpressionEditorY -
+					RaymarchedShapesProperties[i]->ExpressionLighting->GetHeight();
 				depthLerp->MaterialExpressionEditorX = ceil->MaterialExpressionEditorX + ceil->GetWidth() + 50;
 				depthLerp->MaterialExpressionEditorY =
-					RaymarchedShapesProperties[i].ExpressionLighting->MaterialExpressionEditorY -
-					RaymarchedShapesProperties[i].ExpressionLighting->GetHeight();
+					RaymarchedShapesProperties[i]->ExpressionLighting->MaterialExpressionEditorY -
+					RaymarchedShapesProperties[i]->ExpressionLighting->GetHeight();
 				lastMin->MaterialExpressionEditorX = sub->MaterialExpressionEditorX;
 				lastMin->MaterialExpressionEditorY = sub->MaterialExpressionEditorY - sub->GetHeight();
 #endif

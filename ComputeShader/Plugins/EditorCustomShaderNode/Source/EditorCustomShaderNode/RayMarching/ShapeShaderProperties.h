@@ -8,6 +8,7 @@ class UShaderFileData;
 UENUM()
 enum Shape
 {
+	None     UMETA(DisplayName = "None"),
 	Cube     UMETA(DisplayName = "Cube"),
 	Sphere   UMETA(DisplayName = "Sphere"),
 };

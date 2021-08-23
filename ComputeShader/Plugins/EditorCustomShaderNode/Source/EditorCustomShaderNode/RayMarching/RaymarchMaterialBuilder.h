@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "RaymarchedShapeProperties.h"
+#include "Shapes/RaymarchedShapeProperties.h"
 #include "RaymarchedLightingProperties.h"
 #include "ShapeShaderProperties.h"
 #include "RaymarchedLightingData.h"
@@ -59,7 +59,7 @@ protected:
 private:
 	//Settings and data
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName = "Shape Details", Category = "Shapes", meta = (AllowPrivateAccess = true))
-	TArray<FRaymarchedShapeProperties> RaymarchedShapesProperties;
+	TArray<URaymarchedShapeProperties*> RaymarchedShapesProperties;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName = "Shape Properties", Category = "Shapes", meta = (AllowPrivateAccess = true))
 	TArray<FShapeShaderProperties> ShapeShaderProperties;
 	//Object during runtime

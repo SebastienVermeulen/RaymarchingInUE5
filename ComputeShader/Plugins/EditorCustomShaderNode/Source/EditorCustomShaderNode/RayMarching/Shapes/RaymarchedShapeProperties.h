@@ -1,7 +1,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ShapeShaderProperties.h"
+#include "Engine/DataAsset.h"
+#include "../ShapeShaderProperties.h"
 #include "RaymarchedShapeProperties.generated.h"
 
 class ARaymarchedPhysicsShape;
@@ -17,47 +18,30 @@ class UMaterialExpressionLinearInterpolate;
 
 struct FRaymarchedLightingData;
 
-USTRUCT(BlueprintType)
-struct FRaymarchedShapeProperties
+UCLASS(Abstract, DefaultToInstanced, EditInlineNew)
+class URaymarchedShapeProperties : public UDataAsset
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 	
 #pragma region Functions
 public:	
-	FRaymarchedShapeProperties();
-
-	ARaymarchedPhysicsShape* CreateShape(ARaymarchMaterialBuilder* Builder, UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx, const int nrShapes);
-	void UpdateShape(UMaterialInstanceDynamic* Material, const ARaymarchedPhysicsShape* shape, const int idx);
-
-	void HookUpOtherShading(UCustomFileMaterialExpression* Shading);
-
-#if WITH_EDITOR
-	void AdjustEditorHeight(const int nrOfShapes, const float baseheight = 1200.0f, const float shadowShaderHeight = 300.0f);
-	void DebugDrawShape(UWorld* World);
-#endif
+	URaymarchedShapeProperties();
 
 protected:
 
 private:
-	void CreateParameters(UMaterial* Material, const int idx);
-
-	void HookupMarching(UMaterial* Material, const FShapeShaderProperties shape, const int idx);
-	void HookupShading(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx, const int nrShapes);
-	void HookupLighting(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, const int idx, const int nrShapes);
 
 #pragma endregion
 
 #pragma region Variables
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TEnumAsByte<Shape> ShapeType;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FVector StartPosition;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRotator StartRotation;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Radius;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FColor DiffuseColor;
@@ -76,8 +60,6 @@ public:
 	UMaterialExpressionLinearInterpolate* FinalColorExpression;
 
 protected:
-
-private:
 #if WITH_EDITOR
 	float TotalEditorHeight;
 #endif
@@ -90,4 +72,7 @@ private:
 	UMaterialExpressionVectorParameter* SpecularColorParam;
 	UMaterialExpressionScalarParameter* ShinynessParam;
 #pragma endregion
+
+private:
+
 };
