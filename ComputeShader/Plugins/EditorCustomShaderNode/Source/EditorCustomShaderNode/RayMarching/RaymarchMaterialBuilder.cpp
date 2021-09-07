@@ -1,7 +1,7 @@
 //Credit for material creation: https://isaratech.com/ue4-programmatically-create-a-new-material-and-inner-nodes/
 
 #include "RaymarchMaterialBuilder.h"
-#include "RaymarchedPhysicsShape.h"
+#include "PhysicsShapes/RaymarchedPhysicsShape.h"
 #include "RaymarchedLightingProperties.h"
 #include "../CustomExpression/CustomFileMaterialExpression.h"
 #include "Shapes/RaymarchedShapeInterface.h"
@@ -139,30 +139,47 @@ void ARaymarchMaterialBuilder::PopulateMaterial()
 	//Setup universally used variables
 	UMaterialExpressionLinearInterpolate* lerp = SetupStaticVariables();
 
+	URaymarchedShapeProperties* shapeProperties = nullptr;
+	IRaymarchedShapeInterface* shapeInterface = nullptr;
+	FShapeShaderProperties* shape = nullptr;
+
 	//Setup shapes
-	//Go over all the shape-properties to create the shapes
+	//Go over all the shape-properties to create the shapes, physically and material wise (except for shading, see next loop)
 	int nrOfShapes = RaymarchedShapesProperties.Num();
 	for (int i = 0; i < nrOfShapes; i++)
 	{
-		URaymarchedShapeProperties* shapeProperties = RaymarchedShapesProperties[i];
-		IRaymarchedShapeInterface* shapeInterface = Cast<IRaymarchedShapeInterface>(shapeProperties);
+		shapeProperties = RaymarchedShapesProperties[i];
+		shapeInterface = Cast<IRaymarchedShapeInterface>(shapeProperties);
 #if WITH_EDITOR
 		shapeInterface->AdjustEditorHeight(nrOfShapes);
 #endif
 		//Find the correct shape
-		FShapeShaderProperties* shape = ShapeShaderProperties.FindByPredicate([shapeProperties](FShapeShaderProperties x)
+		shape = ShapeShaderProperties.FindByPredicate([shapeProperties](FShapeShaderProperties x)
 			{ 
 				return x.ShapeType == shapeProperties->ShapeType;
 			});
 		if (shape != nullptr)
 		{
-			//Create it
-			RaymarchedPhysicsShapes.Add(shapeInterface->CreateShape(this, Material, *shape, LightingData, i, nrOfShapes));
+			//Create it physics
+			RaymarchedPhysicsShapes.Add(shapeInterface->CreateShape(this, Material, i));
+			
+			//Create the material side
+			shapeInterface->CreateParameters(Material, i);
+			shapeInterface->HookupMarching(Material, *shape, i);
+			shapeInterface->HookupLighting(Material, *shape, LightingData, i, nrOfShapes);
 		}
 		else 
 		{
 			check(shape);
 		}
+	}
+	//Shading needs to connect later due to it needing nodes of other shapes
+	for (int i = 0; i < nrOfShapes; i++)
+	{
+		shapeProperties = RaymarchedShapesProperties[i];
+		shapeInterface = Cast<IRaymarchedShapeInterface>(shapeProperties);
+		//Setup shading side
+		shapeInterface->HookupShading(Material, RaymarchedShapesProperties, ShapeShaderProperties, LightingData, i, nrOfShapes);
 	}
 
 	//Connect the different shapes in the material

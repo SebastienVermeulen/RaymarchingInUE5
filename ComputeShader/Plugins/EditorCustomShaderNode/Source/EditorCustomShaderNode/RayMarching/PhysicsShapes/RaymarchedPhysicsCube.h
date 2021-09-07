@@ -1,25 +1,25 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
-#include "RaymarchedPhysicsShape.generated.h"
+#include "RaymarchedPhysicsShape.h"
+#include "RaymarchedPhysicsCube.generated.h"
 
 class UBoxComponent;
 
 UCLASS()
-class ARaymarchedPhysicsShape : public AActor
+class ARaymarchedPhysicsCube : public ARaymarchedPhysicsShape
 {
 	GENERATED_BODY()
 	
 #pragma region Functions
 public:	
-	ARaymarchedPhysicsShape(const FObjectInitializer& ObjectInitializer);
+	ARaymarchedPhysicsCube(const FObjectInitializer& ObjectInitializer);
 	void Init(float radius);
 
 	virtual void Tick(float DeltaTime) override;
 
 #if WITH_EDITOR
-	void DebugDrawShape();
+	virtual void DebugDrawShape() override;
 #endif
 
 protected:

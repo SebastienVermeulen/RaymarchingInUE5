@@ -1,0 +1,83 @@
+const int MAX_STEPS = 500;
+const float MIN_DIST = 0.01;
+const float MAX_DIST = 100000.0;
+
+const float3 gDefaultCol = float3(0.0,0.0,0.0);
+const float gShadowSoftness = 15.0;
+
+struct Object
+{
+    float GetDist(const in float3 newPos, const in float3 sphereOrig, const in float sphereRad)
+    {
+        float3 direction = newPos - sphereOrig;
+        return min(MAX_DIST, max(length(direction) - sphereRad, 0.0));
+    }
+    //Normals based on https://iquilezles.org/www/articles/normalsSDF/normalsSDF.htm
+    float3 GetNormal(const in float3 newPos, const in float3 cubeOrig, const in float cubeRad)
+    {
+        float2 add = float2(1.0, -1.0) * MIN_DIST * 10.0;
+        return normalize( 
+                    add.xyy * GetDist(newPos + add.xyy, cubeOrig, cubeRad).x + 
+					add.yyx * GetDist(newPos + add.yyx, cubeOrig, cubeRad).x + 
+					add.yxy * GetDist(newPos + add.yxy, cubeOrig, cubeRad).x + 
+					add.xxx * GetDist(newPos + add.xxx, cubeOrig, cubeRad).x );
+    }
+};
+
+struct MarchInfo
+{
+    float3 lastPos;
+    float dist;
+    float lastDist;
+    int steps;
+};
+
+struct Marcher
+{
+    //Lighting based on: http://www.project-asura.com/program/d3d11/d3d11_006.html
+    float3 Specular(const in float3 specularColor, const in float3 viewDir, const in float3 normal, const in float3 lightDir, const in float shinyness)
+    {        
+        float3 reflected = -viewDir + (2.0f * dot( normal, viewDir ) * normal);
+        return specularColor * pow( max ( dot( lightDir, reflected), 0.0f ), shinyness ) * ((shinyness + 1.0f)/ (2.0 * 3.1416));
+    }
+    float3 Diffuse(const in float3 diffuseColor, const in float3 normal, const in float3 lightDir)
+    {        
+        return diffuseColor * dot(normal, lightDir);
+    }
+    float4 GetLighting(const in float3 viewPos, const in float3 viewDir, const in MarchInfo march, const in float3 lightOrigin, 
+        out float3 lightDir, const in float lightStrength, const in float3 sphereOrig, const in float3 diffuseColor,
+        const in float3 specularColor, const in float3 lightColor, const in float3 ambientColor, out float3 normal, 
+        const in float sphereRad, const in float shinyness, const in float fogMultiplier)
+    {   
+        Object obj;
+        normal = obj.GetNormal(march.lastPos, sphereOrig, sphereRad);
+
+        //Lighting
+        lightDir = lightOrigin - march.lastPos;
+        float lightLength = length(lightDir);
+        lightDir = lightDir / lightLength;
+        lightLength = max(lightStrength * lightLength / 100.0f, 0.0f);
+
+        float3 col = Specular(specularColor, viewDir, normal, lightDir, shinyness) + Diffuse(diffuseColor, normal, lightDir) + ambientColor;
+
+        //Check dist  
+        if(MIN_DIST >= march.lastDist)
+        {
+            return float4(saturate(col), 1.0);
+        }
+        return (float4)0.0;
+    }
+};
+
+//Lighting
+Marcher marcher;
+MarchInfo march;
+march.lastPos = lastPos;
+march.dist = distance;
+march.lastDist = lastDist;
+march.steps = steps;
+
+return marcher.GetLighting(rayPos, -rayDirection, march, 
+    lightOrigin, lightDir, lightStrength, sphereOrig, diffuseColor, 
+    specularColor, lightColor, ambientColor, normal, sphereRad, 
+    shinyness, fogMultiplier);

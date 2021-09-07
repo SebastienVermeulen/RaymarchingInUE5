@@ -5,7 +5,7 @@
 #include "../ShapeShaderProperties.h"
 #include "RaymarchedShapeProperties.h"
 #include "RaymarchedShapeInterface.h"
-#include "RaymarchedCubeProperties.generated.h"
+#include "RaymarchedSphereProperties.generated.h"
 
 class ARaymarchedPhysicsShape;
 class UCustomFileMaterialExpression;
@@ -21,13 +21,13 @@ class UMaterialExpressionLinearInterpolate;
 struct FRaymarchedLightingData;
 
 UCLASS(DefaultToInstanced, EditInlineNew)
-class URaymarchedCubeProperties : public URaymarchedShapeProperties, public IRaymarchedShapeInterface
+class URaymarchedSphereProperties : public URaymarchedShapeProperties, public IRaymarchedShapeInterface
 {
 	GENERATED_BODY()
 	
 #pragma region Functions
 public:	
-	URaymarchedCubeProperties();
+	URaymarchedSphereProperties();
 
 	virtual ARaymarchedPhysicsShape* CreateShape(ARaymarchMaterialBuilder* Builder, UMaterial* Material, const int idx) override;
 	virtual void UpdateShape(UMaterialInstanceDynamic* Material, const ARaymarchedPhysicsShape* shape, const int idx) override;
@@ -43,8 +43,8 @@ public:
 	virtual void CreateParameters(UMaterial* Material, const int idx) override;
 
 	virtual void HookupMarching(UMaterial* Material, const FShapeShaderProperties shape, const int idx) override;
-	virtual void HookupShading(UMaterial* Material, const TArray<URaymarchedShapeProperties*> raymarchedShapesProperties,
-		const TArray<FShapeShaderProperties> shapes, const FRaymarchedLightingData lightingData,
+	virtual void HookupShading(UMaterial* Material, const TArray<URaymarchedShapeProperties*> raymarchedShapesProperties, 
+		const TArray<FShapeShaderProperties> shapes, const FRaymarchedLightingData lightingData, 
 		const int idx, const int nrShapes) override;
 	virtual void HookupLighting(UMaterial* Material, const FShapeShaderProperties shape, const FRaymarchedLightingData lightingData, 
 		const int idx, const int nrShapes) override;

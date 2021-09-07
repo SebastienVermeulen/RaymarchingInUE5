@@ -1,9 +1,9 @@
-#include "RaymarchedPhysicsShape.h"
+#include "RaymarchedPhysicsCube.h"
 #include "Components/BoxComponent.h"
 #include "DrawDebugHelpers.h"
 
-ARaymarchedPhysicsShape::ARaymarchedPhysicsShape(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+ARaymarchedPhysicsCube::ARaymarchedPhysicsCube(const FObjectInitializer& ObjectInitializer)
+	: ARaymarchedPhysicsShape(ObjectInitializer)
 	, CollisionMesh{nullptr}
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -19,22 +19,21 @@ ARaymarchedPhysicsShape::ARaymarchedPhysicsShape(const FObjectInitializer& Objec
 	CollisionMesh->SetCollisionResponseToChannels(cont);
 	CollisionMesh->SetCollisionEnabled(ECollisionEnabled::Type::QueryAndPhysics);
 }
-void ARaymarchedPhysicsShape::Init(float radius)
+void ARaymarchedPhysicsCube::Init(float radius)
 {
 	CollisionMesh->SetBoxExtent(FVector(radius, radius, radius));
 }
-void ARaymarchedPhysicsShape::BeginPlay()
+void ARaymarchedPhysicsCube::BeginPlay()
 {
 	Super::BeginPlay();
-
 }
-void ARaymarchedPhysicsShape::Tick(float DeltaTime)
+void ARaymarchedPhysicsCube::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
 
 #if WITH_EDITOR
-void ARaymarchedPhysicsShape::DebugDrawShape()
+void ARaymarchedPhysicsCube::DebugDrawShape()
 {
 	DrawDebugBox(GetWorld(), GetActorLocation(), CollisionMesh->GetScaledBoxExtent(), GetActorRotation().Quaternion(), FColor::Purple, false, -1, 0, 10);
 }

@@ -1,0 +1,61 @@
+const int MAX_STEPS = 30;
+const float MAX_DIST = 100000.0;
+const float MIN_DIST = 0.01;
+
+const float3 gDefaultCol = float3(0.0,0.0,0.0);
+const float gShadowSoftness = 4.0;
+
+struct Object
+{
+    float GetDist(const in float3 newPos, const in float3 sphereOrig, const in float sphereRad)
+    {
+        float3 direction = newPos - sphereOrig;
+        return min(MAX_DIST, max(length(direction) - sphereRad, 0.0));
+    }
+};
+
+struct MarchInfo
+{
+    float3 lastPos;
+    float dist;
+    float lastDist;
+    int steps;
+};
+
+struct Marcher
+{
+    float CalcSoftShadow(const in float3 rayOrigin, const in float3 lightPos, const in float3 rayDirection, const in float3 sphereOrig, const in float sphereRad)
+    {
+        Object obj;
+
+        MarchInfo march;
+        march.dist = MIN_DIST;
+        march.lastDist = 0.0;
+
+        float lightDistance = length(lightPos - rayOrigin);
+        float shadow = 1.0;
+        for (; march.steps < MAX_STEPS; march.steps++)
+        {
+            if(march.dist > lightDistance)
+            {
+                break;
+            }
+
+            march.lastDist = obj.GetDist(rayOrigin + march.dist * rayDirection, sphereOrig, sphereRad);
+
+            if(MIN_DIST > march.lastDist)
+            {
+                return 0.0;
+            }
+
+            march.dist += march.lastDist;
+            shadow = min(shadow, gShadowSoftness * march.lastDist / march.dist);
+        }
+
+        return clamp(shadow, 0.0, 1.0);
+    }
+};
+
+//Lighting
+Marcher marcher;
+return marcher.CalcSoftShadow(lastPos + 3.0 * MIN_DIST * normal, lightOrigin, lightDir, sphereOrig, sphereRad);

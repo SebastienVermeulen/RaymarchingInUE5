@@ -1,6 +1,6 @@
 #include "RaymarchedShapeProperties.h"
 #include "../../CustomExpression/CustomFileMaterialExpression.h"
-#include "../RaymarchedPhysicsShape.h"
+#include "../PhysicsShapes/RaymarchedPhysicsShape.h"
 #include "../RaymarchedLightingData.h"
 #include "../RaymarchMaterialBuilder.h"
 #include "DrawDebugHelpers.h"
